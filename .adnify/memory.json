@@ -2,6 +2,12 @@
   "version": 1,
   "items": [
     {
+      "id": "cf5b603f-464e-428d-b180-6e08ce98aa4c",
+      "content": "work-logs 项目已从 Vite+React+localStorage 迁移为 Next.js 16 (App Router, web/ 提升至仓库根目录) + Prisma 6 + 远程 PostgreSQL (170.106.75.5:5432, 库 devlog, 用户 devlog)。连接串在根目录 .env（已被 gitignore）。注意：该 PG 用户无 CREATEDB 权限，Prisma 需用 `db push` 而不是 `migrate dev`（影子库限制）。目录分层：src/lib(prisma.ts/data.ts/github.ts/types.ts) → src/app/api/*(REST) → src/components(StoreProvider/Shell/pages/*)。所有页面数据来自 /api/state，无演示种子数据。",
+      "createdAt": 1789919191899,
+      "enabled": true
+    },
+    {
       "id": "b6bdceef-b572-4942-9967-3e1280749aa2",
       "content": "Git 身份：用户 git 提交邮箱使用 1662877157@qq.com（GitHub 仓库 ad-naan/agent-workspace）。",
       "createdAt": 1789917204441,

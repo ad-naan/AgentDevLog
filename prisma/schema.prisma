@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String   @default("Richard Davis")
+  title     String   @default("高级全栈工程师")
+  email     String?  @unique
+  createdAt DateTime @default(now())
+
+  logs       Log[]
+  todos      Todo[]
+  activities Activity[]
+  reports    Report[]
+  breakdowns Breakdown[]
+  settings   Settings?
+}
+
+model Settings {
+  id            Int     @id @default(autoincrement())
+  userId        Int     @unique
+  user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  defaultScope  String  @default("work")
+  watchedRepos  String[] @default([])
+  githubToken   String  @default("")
+  languages     Json    @default("[]")
+  llmBaseUrl    String  @default("")
+  llmModel      String  @default("")
+  llmApiKey     String  @default("")
+  lastSync      DateTime @default("1970-01-01T00:00:00Z")
+}
+
+model Log {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      String   // 2026-09-20
+  scope     String   @default("work")
+  title     String
+  content   String   @db.Text
+  tags      String[] @default([])
+  mood      Int      @default(3)
+  linked    String[] @default([])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, date])
+}
+
+model Todo {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  done      Boolean  @default(false)
+  priority  String   @default("P1")
+  due       String   @default("")
+  scope     String   @default("work")
+  source    String   @default("手动")
+  ref       String?
+  tag       String   @default("产品")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, done])
+}
+
+model Activity {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // log | commit | pr | issue
+  repo      String   @default("")
+  scope     String   @default("work")
+  title     String
+  desc      String?  @db.Text
+  meta      String?
+  tags      Json?
+  extId     String?  @unique // GitHub 事件 id，防重复同步
+  ts        DateTime @default(now())
+
+  @@index([userId, ts])
+}
+
+model Report {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date        String
+  status      String   @default("draft")
+  summary     String   @db.Text
+  sections    Json
+  generatedAt String
+  basis       Json
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, date])
+}
+
+model Breakdown {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requirement String   @db.Text
+  mode        String   @default("标准")
+  status      String   @default("idle")
+  modules     Json
+  tech        String[] @default([])
+  createdAt   DateTime @default(now())
+}
+
+model RepoCommits {
+  id     Int      @id @default(autoincrement())
+  userId Int
+  repo   String
+  day    String   // 日期
+  count  Int      @default(0)
+
+  @@unique([userId, repo, day])
+}
