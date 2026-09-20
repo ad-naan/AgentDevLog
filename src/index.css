@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0a0e14;
+  --color-panel: #10161f;
+  --color-card: #141c26;
+  --color-inset: #0d131b;
+  --color-line: #1e2836;
+  --color-line2: #2a3a4f;
+  --color-txt: #e6edf3;
+  --color-dim: #8b94a3;
+  --color-faint: #5a6472;
+  --color-accent: #3ddc97;
+  --color-blue: #58a6ff;
+  --color-purple: #a78bfa;
+  --color-purple2: #8b5cf6;
+  --color-orange: #f0883e;
+  --color-red: #f85149;
+  --font-sans: "Fira Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "Fira Code", "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+}
+
+html, body, #root { height: 100%; }
+body {
+  background: var(--color-bg);
+  color: var(--color-txt);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: #2a3a4f; border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+@keyframes blink { 50% { opacity: 0; } }
+.caret { animation: blink 1s step-end infinite; }
+
+/* 报告页 AI 底栏紫色渐变边框 */
+.ai-bar {
+  background:
+    linear-gradient(var(--color-inset), var(--color-inset)) padding-box,
+    linear-gradient(90deg, rgba(139,92,246,.55), rgba(58,166,255,.35)) border-box;
+  border: 1px solid transparent;
+}
+
+/* 洞察卡紫色光晕 */
+.insight-glow {
+  background:
+    radial-gradient(120% 90% at 20% 0%, rgba(124,58,237,.14), transparent 60%),
+    var(--color-card);
+}
+
+/* 热力图等级色 */
+.hm1 { background: #1f4d38; }
+.hm2 { background: #2e9e63; }
+.hm3 { background: #3ddc84; }
+.hm4 { background: #7bedb0; }
+.hm0 { background: #17242e; }
+
+/* AI 面板紫调背景（TodoList 右栏） */
+.ai-panel {
+  background: linear-gradient(180deg, #1a1330 0%, #0f0c1e 100%);
+}

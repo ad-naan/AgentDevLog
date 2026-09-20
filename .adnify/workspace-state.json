@@ -1,0 +1,39 @@
+{
+  "openFiles": [],
+  "activeFile": null,
+  "expandedFolders": [
+    "E:\\Project\\work-logs",
+    "E:\\Project\\work-logs\\design\\874af9b3-46a5-4e46-91af-995a60f3fd64-0",
+    "E:\\Project\\work-logs\\design\\bf2f03b8-9c89-4262-bf0f-ee9c88f9a1f6-0",
+    "E:\\Project\\work-logs\\design\\e32f7db2-fe25-4301-aa06-858bedee9f4e-0",
+    "E:\\Project\\work-logs\\app"
+  ],
+  "scrollPositions": {},
+  "cursorPositions": {},
+  "layout": {
+    "sidebarWidth": 260,
+    "chatWidth": 497,
+    "terminalVisible": false,
+    "terminalLayout": "tabs",
+    "workbench": {
+      "version": 1,
+      "tree": {
+        "direction": "horizontal",
+        "first": "sidebar",
+        "second": {
+          "direction": "horizontal",
+          "first": "editor",
+          "second": "agent",
+          "ratio": 0.6808519269776876
+        },
+        "ratio": 0.2
+      },
+      "preset": "custom",
+      "terminalPosition": "editor",
+      "terminalHeight": 260
+    },
+    "editorVisible": true,
+    "chatVisible": true,
+    "activeSidePanel": "explorer"
+  }
+}
