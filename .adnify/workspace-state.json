@@ -1,12 +1,26 @@
 {
-  "openFiles": [],
-  "activeFile": null,
+  "openFiles": [
+    {
+      "path": "preview://session/24278fba-3759-4f5d-8bd9-85e1063d75e4",
+      "kind": "preview",
+      "preview": {
+        "sessionId": "24278fba-3759-4f5d-8bd9-85e1063d75e4",
+        "url": "http://localhost:5199/",
+        "title": "DevLog · personal workspace",
+        "source": "manual",
+        "workspaceRoot": "E:\\Project\\work-logs"
+      }
+    },
+    "E:/Project/work-logs/package-lock.json"
+  ],
+  "activeFile": "preview://session/24278fba-3759-4f5d-8bd9-85e1063d75e4",
   "expandedFolders": [
     "E:\\Project\\work-logs",
     "E:\\Project\\work-logs\\design\\874af9b3-46a5-4e46-91af-995a60f3fd64-0",
     "E:\\Project\\work-logs\\design\\bf2f03b8-9c89-4262-bf0f-ee9c88f9a1f6-0",
     "E:\\Project\\work-logs\\design\\e32f7db2-fe25-4301-aa06-858bedee9f4e-0",
-    "E:\\Project\\work-logs\\app"
+    "E:\\Project\\work-logs\\app",
+    "E:\\Project\\work-logs\\src"
   ],
   "scrollPositions": {},
   "cursorPositions": {},

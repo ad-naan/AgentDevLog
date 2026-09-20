@@ -264,16 +264,31 @@ export function todayStats(s: State) {
   return { commits, prs, streak, open }
 }
 
-export function heatmap(s: State): { date: string; n: number }[][] {
-  // 26 列 × 7 行，列=天（从旧到新），行=周一..周日
+// 所有关注仓库按日期汇总的提交数
+export function dailyTotals(s: State): Record<string, number> {
   const total: Record<string, number> = {}
   for (const repo of s.settings.watchedRepos) {
     const days = s.repoCommits[repo] || {}
     for (const [d, n] of Object.entries(days)) total[d] = (total[d] || 0) + n
   }
+  return total
+}
+
+// 最近 n 天的序列（旧→新），用于迷你趋势图
+export function lastNDays(s: State, n: number): number[] {
+  const total = dailyTotals(s)
+  return Array.from({ length: n }, (_, i) => {
+    const d = new Date(Date.now() - (n - 1 - i) * 864e5).toISOString().slice(0, 10)
+    return total[d] || 0
+  })
+}
+
+export function heatmap(s: State, weeks = 26): { date: string; n: number }[][] {
+  // weeks 列 × 7 行，列=周（从旧到新），行=周一..周日
+  const total = dailyTotals(s)
   const cols: { date: string; n: number }[][] = []
   const todayIdx = (new Date().getDay() + 6) % 7 // 周一=0
-  for (let c = 25; c >= 0; c--) {
+  for (let c = weeks - 1; c >= 0; c--) {
     const col: { date: string; n: number }[] = []
     for (let r = 6; r >= 0; r--) {
       const offset = c * 7 + (6 - r) - (6 - todayIdx)

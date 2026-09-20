@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useStore, heatmap, todayStats } from '../store'
+import { useStore, heatmap } from '../store'
 import { IconTrend } from '../icons'
 
 const DAYS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
@@ -7,10 +7,13 @@ const hmCls = (n: number) => n === 0 ? 'bg-[#17242e]' : n < 4 ? 'bg-[#1f4d38]' :
 
 export default function Analytics() {
   const s = useStore()
-  const cols = heatmap(s)
-  const st = todayStats(s)
   const [range, setRange] = useState('最近 30 天')
-  const totalCommits = Object.values(s.repoCommits).reduce((n, days) => n + Object.values(days).reduce((a, b) => a + b, 0), 0)
+  const weeks = range === '最近 7 天' ? 1 : range === '最近 90 天' ? 13 : 5
+  const rangeDays = weeks * 7
+  const cols = heatmap(s, weeks)
+  const cutoff = Date.now() - rangeDays * 864e5
+  const totalCommits = Object.values(s.repoCommits).reduce((n, days) =>
+    n + Object.entries(days).reduce((a, [d, c]) => a + (new Date(d).getTime() >= cutoff ? c : 0), 0), 0)
   // 黄金时段：从提交分布近似（晚间权重高）
   const total = s.settings.languages.reduce((n, l) => n + l[1], 0) || 1
 
@@ -36,7 +39,7 @@ export default function Analytics() {
             </span>
             <b className="text-[14px]">代码提交热力图</b>
             <span className="text-[11.5px] text-faint ml-2">总提交 <b className="text-accent font-mono">{totalCommits}</b> 次 ↑12%</span>
-            <span className="ml-auto text-[11px] text-faint">{range} · 26 列（每列代表 1 天）</span>
+            <span className="ml-auto text-[11px] text-faint">{range} · {weeks} 列（每列 1 周）</span>
           </div>
           <div className="mt-4 flex gap-2">
             <div className="flex flex-col justify-between py-px text-[10px] text-faint shrink-0">
@@ -92,7 +95,7 @@ export default function Analytics() {
         <div className="grid grid-cols-3 gap-4">
           {[
             { t: '黄金时段', badge: '效率高', sub: '你最活跃的编码时段', v: '20:00 – 22:00', d: '该时段的代码提交量占全天的 42%，建议在此时间段集中处理复杂任务。', foot: '相比其他时段 +68%' },
-            { t: '工作类型分布', badge: '开发重点', sub: '你主要的工作内容类型', v: `${Math.max(40, Math.min(80, st.commits * 4))}% 新功能`, d: `新功能开发占比最高，其次是代码重构与问题修复；当前关注 ${s.settings.watchedRepos.length} 个仓库。`, foot: '新功能持续增长' },
+            { t: '工作类型分布', badge: '开发重点', sub: '你主要的工作内容类型', v: `${Math.max(40, Math.min(80, Math.round(totalCommits / Math.max(1, rangeDays)) * 4))}% 新功能`, d: `新功能开发占比最高，其次是代码重构与问题修复；当前关注 ${s.settings.watchedRepos.length} 个仓库。`, foot: '新功能持续增长' },
             { t: '上下文切换', badge: '较为频繁', sub: '平均每天切换的仓库数量', v: `${Math.max(1, s.settings.watchedRepos.length * 0.8).toFixed(1)} 个仓库/天`, d: '你平均在多个仓库之间切换，建议合理规划项目结构，减少上下文切换。', foot: '可通过工作区优化提升效率' },
           ].map((c) => (
             <div key={c.t} className="insight-glow border border-[rgba(139,92,246,.25)] rounded-2xl p-4 flex flex-col gap-2.5">

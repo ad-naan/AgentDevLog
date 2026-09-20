@@ -1,13 +1,19 @@
 import { useState } from 'react'
-import { useStore, setState, scopedActivities, todayStats, today } from '../store'
+import { useStore, setState, scopedActivities, todayStats, lastNDays, today } from '../store'
 import { IconCheck, IconSpark, IconLog, IconPlus, IconGitBranch, IconGitMerge, IconFlame, IconArrow } from '../icons'
 
-const Spark = ({ color = '#3ddc97' }: { color?: string }) => (
-  <svg viewBox="0 0 64 22" className="w-16 h-5" fill="none">
-    <path id="sparkline" d="M2 18 L10 15 L18 16 L26 10 L34 12 L42 7 L50 9 L62 3" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
-    <path d="M2 18 L10 15 L18 16 L26 10 L34 12 L42 7 L50 9 L62 3 L62 22 L2 22 Z" fill={color} opacity=".14" />
-  </svg>
-)
+const Spark = ({ data, color = '#3ddc97' }: { data: number[]; color?: string }) => {
+  const max = Math.max(...data, 1)
+  const w = 64, h = 22
+  const pts = data.map((v, i) => [2 + (i / Math.max(1, data.length - 1)) * (w - 4), h - 3 - (v / max) * (h - 6)] as const)
+  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ')
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-16 h-5" fill="none">
+      <path d={d} stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={`${d} L${w - 2} ${h} L2 ${h} Z`} fill={color} opacity=".14" />
+    </svg>
+  )
+}
 
 const TAG_CLS: Record<string, string> = {
   g: 'text-accent bg-[rgba(61,220,151,.12)]',
@@ -33,6 +39,13 @@ export default function Dashboard() {
   const greet = hour < 6 ? '凌晨好' : hour < 12 ? '早上好' : hour < 14 ? '中午好' : hour < 18 ? '下午好' : '晚上好'
   const scopeAccent = s.scope === 'work' ? 'text-accent' : 'text-orange'
   const [input, setInput] = useState('')
+  const commitSeries = lastNDays(s, 12)
+  const prTotals: Record<string, number> = {}
+  for (const a of s.activities) if (a.type === 'pr') {
+    const d = new Date(a.ts).toISOString().slice(0, 10)
+    prTotals[d] = (prTotals[d] || 0) + 1
+  }
+  const prSeries = Array.from({ length: 12 }, (_, i) => prTotals[new Date(Date.now() - (11 - i) * 864e5).toISOString().slice(0, 10)] || 0)
 
   const submit = () => {
     const text = input.trim()
@@ -92,14 +105,14 @@ export default function Dashboard() {
             { icon: IconGitBranch, bg: 'bg-[rgba(61,220,151,.14)] text-accent', n: stats.commits, l: 'commits today', c: '#3ddc97' },
             { icon: IconGitMerge, bg: 'bg-[rgba(88,166,255,.14)] text-blue', n: stats.prs, l: 'PRs merged', c: '#58a6ff' },
             { icon: IconFlame, bg: 'bg-[rgba(188,140,255,.14)] text-purple', n: stats.streak, l: 'day streak', c: '#bc8cff' },
-          ].map((x) => (
+          ].map((x, i) => (
             <div key={x.l} className="bg-card border border-line rounded-2xl p-4">
               <div className={`w-9 h-9 rounded-[10px] flex items-center justify-center ${x.bg}`}><x.icon className="w-[18px] h-[18px]" /></div>
               <div className="font-mono text-[26px] font-bold leading-tight mt-2.5">{x.n}</div>
               <div className="text-[12px] text-dim">{x.l}</div>
               <div className="flex items-end justify-between mt-2">
-                <span className="text-[11px] font-mono text-faint">近 90 天趋势</span>
-                <Spark color={x.c} />
+                <span className="text-[11px] font-mono text-faint">近 12 天趋势</span>
+                <Spark data={i === 1 ? prSeries : commitSeries} color={x.c} />
               </div>
             </div>
           ))}

@@ -4,22 +4,28 @@ import { IconBulb, IconSpark, IconMoodBad, IconMood, IconMoodHappy, IconCheck } 
 
 export default function LogEditor() {
   const s = useStore()
+  const [selDate, setSelDate] = useState(today)
+  const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const [newTag, setNewTag] = useState('')
+  const [newDate, setNewDate] = useState('')
   const log = useMemo(
-    () => s.logs.find((l) => l.date === today && l.scope === s.scope) || s.logs.find((l) => l.scope === s.scope),
+    () => s.logs.find((l) => l.date === selDate && l.scope === s.scope),
+    [s.logs, selDate, s.scope],
+  )
+  const history = useMemo(
+    () => s.logs.filter((l) => l.scope === s.scope).slice().sort((a, b) => b.date.localeCompare(a.date)),
     [s.logs, s.scope],
   )
-  const [draft, setDraft] = useState<string | null>(null)
-  const [newTag, setNewTag] = useState('')
   const acts = scopedActivities(s).filter((a) => a.type !== 'log').slice(0, 6)
   const linked = log?.linked || []
-  const content = draft ?? log?.content ?? ''
+  const content = drafts[selDate] ?? log?.content ?? ''
   const lines = content.split('\n')
   const savedAt = log ? new Date(log.updatedAt).toTimeString().slice(0, 5) : ''
 
   const save = (v: string) => {
-    setDraft(v)
+    setDrafts((p) => ({ ...p, [selDate]: v }))
     setState((d) => {
-      let l = d.logs.find((x) => x.date === today && x.scope === d.scope)
+      let l = d.logs.find((x) => x.date === selDate && x.scope === d.scope)
       if (!l) {
         l = { id: `l${Date.now()}`, date: today, scope: d.scope, title: d.scope === 'work' ? '今日工作日志' : '生活记录', content: '', tags: [], mood: 3, linked: [], updatedAt: Date.now() }
         d.logs.unshift(l)
@@ -29,11 +35,20 @@ export default function LogEditor() {
     })
   }
   const toggleLink = (id: string) => setState((d) => {
-    const l = d.logs.find((x) => x.date === today && x.scope === d.scope) ||
-      (d.logs.unshift({ id: `l${Date.now()}`, date: today, scope: d.scope, title: '今日日志', content: '', tags: [], mood: 3, linked: [], updatedAt: Date.now() }), d.logs[0])
+    const l = d.logs.find((x) => x.date === selDate && x.scope === d.scope) ||
+      (d.logs.unshift({ id: `l${Date.now()}`, date: selDate, scope: d.scope, title: '今日日志', content: '', tags: [], mood: 3, linked: [], updatedAt: Date.now() }), d.logs[0])
     l.linked = l.linked.includes(id) ? l.linked.filter((x) => x !== id) : [...l.linked, id]
     l.updatedAt = Date.now()
   })
+  const createFor = () => {
+    const d0 = newDate || today
+    if (s.logs.some((l) => l.date === d0 && l.scope === s.scope)) { setSelDate(d0); setNewDate(''); return }
+    setState((d) => {
+      d.logs.unshift({ id: `l${Date.now()}`, date: d0, scope: d.scope, title: d.scope === 'work' ? '工作日志' : '生活记录', content: `# ${d0} ${d.scope === 'work' ? '工作日志' : '生活记录'}\n`, tags: [], mood: 3, linked: [], updatedAt: Date.now() })
+    })
+    setSelDate(d0)
+    setNewDate('')
+  }
   const addTag = () => {
     const t = newTag.trim()
     if (!t || !log) return
@@ -53,16 +68,33 @@ export default function LogEditor() {
   ]
   const adopt = () => save(content + `\n\n## AI 建议（采纳）\n${suggestions.map((x, i) => `${i + 1}. ${x}`).join('\n')}`)
 
-  if (!log) return <p className="text-faint text-[13px] py-10 text-center">当前分区还没有日志。</p>
-
   return (
-    <div className="grid grid-cols-[1fr_330px] gap-4 h-full min-h-0">
+    <div className="grid grid-cols-[150px_1fr_330px] gap-4 h-full min-h-0">
+      {/* 日志历史 */}
+      <div className="bg-card border border-line rounded-2xl flex flex-col min-h-0">
+        <div className="px-3 py-3 border-b border-line flex items-center"><b className="text-[12.5px]">日志历史</b><span className="ml-auto text-[10.5px] text-faint font-mono">{history.length}</span></div>
+        <div className="flex-1 overflow-y-auto p-1.5 flex flex-col gap-1">
+          {history.map((l) => (
+            <button key={l.id} onClick={() => setSelDate(l.date)}
+              className={`text-left px-2.5 py-2 rounded-lg transition-colors ${l.date === selDate ? 'bg-[rgba(61,220,151,.14)] text-accent' : 'text-dim hover:bg-[rgba(255,255,255,.04)]'}`}>
+              <b className="block text-[11.5px] font-mono">{l.date === today ? `${l.date} · 今天` : l.date}</b>
+              <span className="block text-[10.5px] text-faint truncate">{l.title}</span>
+            </button>
+          ))}
+          {history.length === 0 && <p className="text-[11px] text-faint p-2">暂无日志</p>}
+        </div>
+        <div className="p-2 border-t border-line flex flex-col gap-1.5">
+          <input type="date" value={newDate} max={today} onChange={(e) => setNewDate(e.target.value)}
+            className="bg-[#0d131b] border border-line rounded-md px-2 py-1.5 text-[11px] outline-none text-dim" />
+          <button onClick={createFor} className="w-full py-1.5 rounded-md text-[12px] font-medium text-[#04110b] bg-accent hover:brightness-110">+ 新建日志</button>
+        </div>
+      </div>
       {/* 编辑器 */}
       <div className="bg-card border border-line rounded-2xl flex flex-col min-h-0">
         <div className="flex items-center gap-3 px-4 py-3 border-b border-line text-[11.5px] text-faint">
           <span className="font-mono">markdown</span>
           <span className="flex items-center gap-1"><i className="w-1.5 h-1.5 rounded-full bg-accent" />自动保存</span>
-          <span className="ml-auto inline-flex items-center gap-1"><IconCheck className="w-3 h-3 text-accent" />已保存 {savedAt}</span>
+          <span className="ml-auto inline-flex items-center gap-1">{log ? <><IconCheck className="w-3 h-3 text-accent" />已保存 {savedAt}</> : '未创建'}</span>
           <span className="text-faint">⋮</span>
         </div>
         <div className="flex-1 min-h-0 flex overflow-y-auto">
@@ -70,7 +102,8 @@ export default function LogEditor() {
             {lines.map((_, i) => <div key={i}>{i + 1}</div>)}
           </div>
           <textarea value={content} onChange={(e) => save(e.target.value)} spellCheck={false}
-            className="flex-1 min-h-0 bg-transparent px-4 py-4 font-mono text-[12.5px] leading-[1.75] text-[#c9d4e3] outline-none resize-none"
+            placeholder={log ? '' : `${selDate} 还没有日志，直接输入即可自动创建…`}
+            className="flex-1 min-h-0 bg-transparent px-4 py-4 font-mono text-[12.5px] leading-[1.75] text-[#c9d4e3] outline-none resize-none placeholder:text-faint"
             style={{ minHeight: `${lines.length * 22 + 32}px` }} />
         </div>
         <div className="border-t border-line px-4 py-2.5 flex items-center gap-3">
@@ -81,23 +114,23 @@ export default function LogEditor() {
             ))}
           </div>
           <div className="flex items-center gap-1.5 ml-2 flex-wrap">
-            {log.tags.map((t) => (
+            {log?.tags.map((t) => (
               <span key={t} className="text-[11px] font-mono text-blue bg-[rgba(88,166,255,.1)] border border-[rgba(88,166,255,.25)] px-2 py-px rounded-full flex items-center gap-1">
                 {t}
-                <button onClick={() => setState((d) => { const l = d.logs.find((x) => x.id === log.id); if (l) l.tags = l.tags.filter((x) => x !== t) })}
+                <button onClick={() => setState((d) => { const l = d.logs.find((x) => x.id === log!.id); if (l) l.tags = l.tags.filter((x) => x !== t) })}
                   className="hover:text-red">✕</button>
               </span>
             ))}
             <input value={newTag} onChange={(e) => setNewTag(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addTag()}
               placeholder="+ 标签" className="bg-transparent border border-dashed border-line2 rounded-full px-2 py-px text-[11px] w-16 outline-none text-blue placeholder:text-faint" />
           </div>
-          <div className="ml-auto flex items-center gap-1.5">
+          {log && <div className="ml-auto flex items-center gap-1.5">
             <span className="text-[11px] text-faint">心情：</span>
             {([[IconMoodBad, 1], [IconMood, 2], [IconMoodHappy, 3]] as [typeof IconMood, 1 | 2 | 3][]).map(([E, m]) => (
               <button key={m} onClick={() => setMood(m)}
                 className={`w-7 h-7 rounded-md border inline-flex items-center justify-center ${log.mood === m ? 'border-accent text-accent' : 'border-line text-faint'}`}><E className="w-4 h-4" /></button>
             ))}
-          </div>
+          </div>}
         </div>
       </div>
 
