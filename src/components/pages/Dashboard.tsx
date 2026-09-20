@@ -168,7 +168,7 @@ export default function Dashboard() {
               const st = TYPE_STYLE[f.type]
               return (
                 <div key={f.id} className="relative flex gap-4 py-3">
-                  <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-[13px] z-10 border border-line ${st.ic}`}>{st.icon}</div>
+                  <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-[13px] z-10 border border-line ${st.ic}`}><st.Icon width={15} height={15} /></div>
                   <div className="min-w-0 flex-1 pb-1">
                     <div className="flex items-center gap-2 text-[11px]">
                       <span className={`flex items-center gap-1 ${st.tc}`}><i className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />{f.type === 'log' && scope === 'life' ? '生活记录' : st.label}</span>

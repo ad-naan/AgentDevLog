@@ -11,6 +11,7 @@ const hmCls = (n: number) => n === 0 ? 'bg-[#17242e]' : n < 4 ? 'bg-[#1f4d38]' :
 export default function Analytics() {
   const { s } = useStore()
   const [range, setRange] = useState('最近 30 天')
+  const [selDate, setSelDate] = useState<string | null>(null)
   if (!s) return <p className="text-faint text-[13px]">加载中…</p>
 
   const weeks = range === '最近 7 天' ? 1 : range === '最近 90 天' ? 13 : 5
@@ -52,13 +53,39 @@ export default function Analytics() {
               {cols.map((col, i) => (
                 <div key={i} className="flex flex-col gap-[5px]">
                   {col.map((c) => (
-                    <div key={c.date} title={`${c.date} · ${c.n} commits`}
-                      className={`w-[14px] h-[14px] rounded-[3px] ${hmCls(c.n)} hover:ring-1 hover:ring-accent`} />
+                    <div key={c.date} title={`${c.date} · ${c.n} commits`} onClick={() => setSelDate(selDate === c.date ? null : c.date)}
+                      className={`w-[14px] h-[14px] rounded-[3px] ${hmCls(c.n)} hover:ring-1 hover:ring-accent cursor-pointer ${selDate === c.date ? 'ring-1 ring-accent' : ''}`} />
                   ))}
                 </div>
               ))}
             </div>
           </div>
+          {selDate && (() => {
+            const day = Object.entries(s.repoCommits)
+              .map(([repo, days]) => ({ repo, n: days[selDate] ?? 0 }))
+              .filter((x) => x.n > 0)
+              .sort((a, b) => b.n - a.n)
+            const totalDay = day.reduce((n, x) => n + x.n, 0)
+            return (
+              <div className="fade-up mt-3 rounded-xl border border-line bg-inset p-3.5">
+                <div className="flex items-center gap-2 text-[12px]">
+                  <b>{selDate}</b>
+                  <span className="text-faint">共 <b className="text-accent font-mono">{totalDay}</b> 次提交</span>
+                  <button onClick={() => setSelDate(null)} className="ml-auto text-[11px] text-faint hover:text-dim">取消选中</button>
+                </div>
+                {day.length === 0
+                  ? <p className="mt-2 text-[11.5px] text-faint">当日无提交记录</p>
+                  : <div className="mt-2 flex flex-col gap-1.5">
+                      {day.map((x) => (
+                        <div key={x.repo} className="flex items-center gap-2 text-[11.5px]">
+                          <span className="text-dim">{x.repo}</span>
+                          <span className="ml-auto font-mono text-accent">{x.n}</span>
+                        </div>
+                      ))}
+                    </div>}
+              </div>
+            )
+          })()}
           <div className="flex items-center gap-4 mt-4 text-[10.5px] text-faint">
             <span>无提交</span><i className="w-3 h-3 rounded-[3px] bg-[#17242e] inline-block" />
             <span>少量提交</span><i className="w-3 h-3 rounded-[3px] bg-[#1f4d38] inline-block" />
@@ -115,7 +142,7 @@ export default function Analytics() {
               </div>
               <p className="text-[11.5px] text-dim leading-relaxed">{c.d}</p>
               <div className="mt-auto flex items-center text-[11px] text-faint">
-                <span className="inline-flex items-center gap-1"><IconTrend className="w-3 h-3" />{c.foot}</span><span className="ml-auto text-purple">→</span>
+                <span className="inline-flex items-center gap-1"><IconTrend className="w-3 h-3" />{c.foot}</span>
               </div>
             </div>
           ))}

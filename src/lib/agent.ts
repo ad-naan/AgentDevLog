@@ -10,6 +10,133 @@ const asStrings = (v: unknown, max: number): string[] | null =>
     ? v.map(String).slice(0, max)
     : null
 
+// ─── ⑤ 工作台助手：意图路由 + 联动各 Agent ───
+
+export interface AssistantTurn {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface AssistantResult {
+  reply: string
+  actions: string[]
+}
+
+export async function runAssistant(
+  userId: number,
+  scope: 'work' | 'life',
+  turns: AssistantTurn[],
+): Promise<AssistantResult> {
+  const last = turns[turns.length - 1]?.content?.trim() || ''
+  if (!last) return { reply: '请输入内容。', actions: [] }
+
+  // 第一步：意图识别（一次轻量 JSON 调用）
+  const cfg = await requireLLMConfig(userId)
+  const route = await chatJSON<{ intent: string }>(
+    cfg,
+    [
+      { role: 'system', content: '你是意图分类器，只输出 JSON。' },
+      {
+        role: 'user',
+        content: `把用户请求分类为一个 intent，取值：
+- "todo"：要创建/记录一条待办事项
+- "log"：要往今日日志追加一条记录
+- "report"：要生成日报/周报/总结
+- "breakdown"：要把一段需求拆解为任务
+- "chat"：其他对话/提问
+
+输出格式：{"intent":"..."}
+
+用户请求：${last.slice(0, 500)}`,
+      },
+    ],
+    (p) => {
+      const o = p as Record<string, unknown>
+      const ok = ['todo', 'log', 'report', 'breakdown', 'chat']
+      return { intent: ok.includes(String(o.intent)) ? String(o.intent) : 'chat' }
+    },
+    { temperature: 0 },
+  )
+
+  const actions: string[] = []
+  try {
+    if (route.intent === 'todo' || route.intent === 'log') {
+      const r = await agentQuickCapture(userId, last, scope)
+      actions.push(r.kind === 'todo'
+        ? `已创建待办「${r.title}」（${r.priority} · ${r.due}）`
+        : `已追加到今日日志：「${r.title}」`)
+      return { reply: `好的，${r.reason}。${actions[0]}。`, actions }
+    }
+    if (route.intent === 'report') {
+      const t0 = today()
+      const since = new Date(Date.now() - 7 * 864e5)
+      const [logs, acts, todos] = await Promise.all([
+        prisma.log.findMany({ where: { userId, scope, date: { gte: since.toISOString().slice(0, 10) } }, orderBy: { date: 'desc' }, take: 7 }),
+        prisma.activity.findMany({ where: { userId, scope, ts: { gte: new Date(t0) } }, take: 30 }),
+        prisma.todo.findMany({ where: { userId, scope, done: false }, take: 15 }),
+      ])
+      const r = await agentReport(userId, scope, {
+        logs: logs.map((l) => ({ title: l.title, content: l.content })),
+        commits: acts.filter((a) => a.type === 'commit').map((a) => ({ title: a.title, repo: a.repo })),
+        prs: acts.filter((a) => a.type === 'pr').map((a) => ({ title: a.title, repo: a.repo })),
+        openTodos: todos.map((t) => `${t.priority} ${t.title}`),
+      })
+      actions.push('已生成报告（报告中心可查看）')
+      return { reply: r.summary, actions }
+    }
+    if (route.intent === 'breakdown') {
+      const r = await agentBreakdown(userId, last, '标准')
+      const total = r.modules.reduce((n, m) => n + m.tasks.length, 0)
+      const created = await prisma.breakdown.create({
+        data: {
+          userId, requirement: last.slice(0, 500), mode: '标准', status: 'done',
+          modules: r.modules, tech: r.tech,
+        },
+      })
+      actions.push(`已拆解 ${r.modules.length} 个模块 / ${total} 个任务（需求拆解页可查看 #${created.id}）`)
+      return {
+        reply: `拆解完成：${r.modules.map((m) => `${m.name}（${m.tasks.length} 项）`).join('、')}。技术方案 ${r.tech.length} 条，已保存到需求拆解页。`,
+        actions,
+      }
+    }
+  } catch (e) {
+    if (e instanceof LLMNotConfiguredError) throw e
+    // 工具执行失败 → 降级为对话，不让整个请求 500
+    return { reply: `执行时遇到问题：${e instanceof Error ? e.message : '未知错误'}。可以换个说法再试，或直接到对应页面操作。`, actions: [] }
+  }
+
+  // chat：带上下文的普通对话
+  const ctx = await assistantContext(userId, scope)
+  const r = await chatJSON<{ reply: string }>(
+    cfg,
+    [
+      { role: 'system', content: `你是 devlog 工作台的 AI 助手，简洁中文回答。可以用以下用户近况作为背景：\n${ctx}` },
+      ...turns.slice(-8).map((t) => ({ role: t.role, content: t.content.slice(0, 1000) })),
+      // 追加一个约束轮，确保输出 JSON
+      { role: 'user', content: '（请以 {"reply":"..."} 的 JSON 格式回答上一条）' },
+    ],
+    (p) => {
+      const o = p as Record<string, unknown>
+      return { reply: typeof o.reply === 'string' && o.reply ? o.reply : '（模型未返回内容）' }
+    },
+    { temperature: 0.5 },
+  )
+  return { reply: r.reply, actions: [] }
+}
+
+async function assistantContext(userId: number, scope: 'work' | 'life'): Promise<string> {
+  const [logs, todos, acts] = await Promise.all([
+    prisma.log.findMany({ where: { userId, scope }, orderBy: { date: 'desc' }, take: 3, select: { date: true, title: true } }),
+    prisma.todo.findMany({ where: { userId, scope, done: false }, take: 5, select: { title: true, priority: true, due: true } }),
+    prisma.activity.findMany({ where: { userId, scope }, orderBy: { ts: 'desc' }, take: 5, select: { type: true, title: true, repo: true } }),
+  ])
+  return [
+    logs.length ? `近期日志：${logs.map((l) => `${l.date} ${l.title}`).join('；')}` : '',
+    todos.length ? `未完成待办：${todos.map((t) => `${t.priority} ${t.title}（${t.due}）`).join('；')}` : '',
+    acts.length ? `近期动态：${acts.map((a) => `${a.type} ${a.title} @${a.repo}`).join('；')}` : '',
+  ].filter(Boolean).join('\n') || '（暂无数据）'
+}
+
 // ─── ① 需求拆解 ───
 
 export interface BreakdownResult {

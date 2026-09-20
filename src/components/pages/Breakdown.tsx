@@ -22,6 +22,16 @@ export default function Breakdown() {
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [adopting, setAdopting] = useState(false)
+  // 已勾选任务（默认全选），「采纳为 TodoList」只转勾选的
+  const [checked, setChecked] = useState<Set<string>>(new Set())
+  const tkey = (mi: number, ti: number) => `${mi}-${ti}`
+  const allKeys = () => bd.modules.flatMap((m, mi) => m.tasks.map((_, ti) => tkey(mi, ti)))
+  const selectedCount = bd.status === 'done' ? allKeys().filter((k) => checked.has(k)).length : 0
+  const toggleTask = (k: string) => setChecked((prev) => {
+    const next = new Set(prev)
+    if (next.has(k)) next.delete(k); else next.add(k)
+    return next
+  })
   const totalDays = bd.modules.reduce((n, m) => n + m.tasks.length, 0)
 
   const run = async () => {
@@ -36,6 +46,8 @@ export default function Breakdown() {
       const j = await res.json() as BreakdownDTO
       const createdAt = new Date().toISOString().slice(0, 16).replace('T', ' ')
       setBd({ ...bd, status: 'done', modules: j.modules, tech: j.tech, createdAt })
+      // 新拆解默认全选
+      setChecked(new Set(j.modules.flatMap((m, mi) => m.tasks.map((_, ti) => tkey(mi, ti)))))
       toast(`✦ AI 拆解完成：${j.modules.length} 个模块 · ${j.modules.reduce((n, m) => n + m.tasks.length, 0)} 个任务`, 'success')
     } else {
       setBd({ ...bd, status: 'idle' })
@@ -43,15 +55,14 @@ export default function Breakdown() {
     }
     await refresh()
   }
-  const copyTech = () => {
-    navigator.clipboard.writeText(bd.tech.map((x, i) => `${i + 1}. ${x}`).join('\n'))
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }
+  const setAllChecked = (on: boolean) => setChecked(on ? new Set(allKeys()) : new Set())
   const toTodos = async () => {
-    if (adopting) return
+    if (adopting || selectedCount === 0) return
     setAdopting(true)
-    const titles = bd.modules.flatMap((m) => m.tasks.map((t) => t.title)).slice(0, 10)
+    const titles = bd.modules
+      .flatMap((m, mi) => m.tasks.map((t, ti) => ({ title: t.title, k: tkey(mi, ti) })))
+      .filter((x) => checked.has(x.k))
+      .map((x) => x.title)
     for (const title of titles) {
       await api('/api/todos', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -61,7 +72,11 @@ export default function Breakdown() {
     setAdopting(false)
     toast(`已采纳 ${titles.length} 个任务到 TodoList`, 'success')
   }
-
+  const copyTech = () => {
+    navigator.clipboard.writeText(bd.tech.map((x, i) => `${i + 1}. ${x}`).join('\n'))
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
   return (
     <div className="max-w-[860px] mx-auto flex flex-col gap-4 pb-8">
       <div className="bg-card border border-line rounded-2xl p-5">
@@ -128,7 +143,9 @@ export default function Breakdown() {
           <div className="bg-card border border-line rounded-2xl p-5 fade-up">
             <div className="flex items-center gap-2">
               <b className="text-[14px]">任务拆解</b>
-              <span className="text-[11px] text-faint">{bd.modules.length} 个模块 · {totalDays} 个任务</span>
+              <span className="text-[11px] text-faint">{bd.modules.length} 个模块 · 已选 <b className="text-accent font-mono">{selectedCount}</b>/{totalDays} 任务</span>
+              <button onClick={() => setAllChecked(selectedCount < totalDays)} title="全选 / 全不选"
+                className="text-[11px] text-faint hover:text-accent transition-colors">{selectedCount < totalDays ? '全选' : '全不选'}</button>
               <span className="ml-auto text-[11px] text-faint font-mono">{bd.createdAt}</span>
             </div>
             <div className="mt-4 flex flex-col gap-2">
@@ -139,27 +156,36 @@ export default function Breakdown() {
                     <span className="font-mono text-[11px] text-purple">{String(i + 1).padStart(2, '0')}</span>
                     <b className="text-[13px]">{m.name}</b>
                     <span className="text-[10.5px] text-faint ml-auto font-mono">{m.tasks.length} 任务</span>
-                    <span className="text-faint text-[11px]">{collapsed[i] ? '⌄' : '⌃'}</span>
+                    <span className={`text-faint text-[11px] transition-transform duration-300 ${collapsed[i] ? '-rotate-90' : ''}`}>⌄</span>
                   </button>
                   {!collapsed[i] && (
                     <ul className="divide-y divide-line">
-                      {m.tasks.map((t) => (
-                        <li key={t.title} className="flex items-center gap-3 px-4 py-2.5">
-                          <span className="text-faint text-[11px]">□</span>
-                          <span className="text-[12.5px] flex-1">{t.title}</span>
-                          <span className="text-[11px] font-mono text-accent bg-[rgba(61,220,151,.1)] px-1.5 py-px rounded">{t.est}</span>
-                        </li>
-                      ))}
+                      {m.tasks.map((t, ti) => {
+                        const k = tkey(i, ti)
+                        return (
+                          <li key={t.title} className="flex items-center gap-3 px-4 py-2.5 hover:bg-[rgba(255,255,255,.02)] transition-colors group">
+                            <button onClick={() => toggleTask(k)} aria-label={checked.has(k) ? '取消勾选' : '勾选'}
+                              className={`w-[16px] h-[16px] rounded-[4px] border flex items-center justify-center shrink-0 transition-all duration-200 ${checked.has(k)
+                                ? 'bg-accent border-accent text-[#04110b] shadow-[0_0_8px_rgba(61,220,151,.4)]'
+                                : 'border-line2 group-hover:border-accent'}`}>
+                              {checked.has(k) && <IconCheck className="w-2.5 h-2.5" strokeWidth={2.6} />}
+                            </button>
+                            <span className={`text-[12.5px] flex-1 transition-colors ${checked.has(k) ? '' : 'text-faint'}`}>{t.title}</span>
+                            <span className="text-[11px] font-mono text-accent bg-[rgba(61,220,151,.1)] px-1.5 py-px rounded">{t.est}</span>
+                          </li>
+                        )
+                      })}
                     </ul>
                   )}
                 </div>
               ))}
             </div>
-            <button onClick={toTodos} disabled={adopting}
-              className="btn-press mt-4 px-4 py-2 rounded-lg bg-accent text-[#04110b] text-[13px] font-semibold inline-flex items-center gap-1.5 disabled:opacity-60">
+            <button onClick={toTodos} disabled={adopting || selectedCount === 0}
+              title={selectedCount === 0 ? '请至少勾选 1 条任务' : undefined}
+              className="btn-press mt-4 px-4 py-2 rounded-lg bg-accent text-[#04110b] text-[13px] font-semibold inline-flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-[0_0_14px_rgba(61,220,151,.4)] transition-shadow">
               {adopting
                 ? <><span className="w-3.5 h-3.5 border-2 border-[#04110b]/30 border-t-[#04110b] rounded-full animate-spin" />采纳中…</>
-                : <><IconCheck className="w-3.5 h-3.5" /> 采纳为 TodoList</>}
+                : <><IconCheck className="w-3.5 h-3.5" /> 采纳为 TodoList（{selectedCount}）</>}
             </button>
           </div>
 
@@ -167,7 +193,7 @@ export default function Breakdown() {
             <div className="flex items-center gap-2">
               <b className="text-[14px]">技术方案</b>
               <button onClick={copyTech} className="ml-auto text-faint hover:text-dim text-[12px] inline-flex items-center gap-1">
-                {copied ? <><IconCheck className="w-3.5 h-3.5 text-accent" />已复制</> : <><IconCopy className="w-3.5 h-3.5" />复制</>}
+                {copied ? <><IconCheck className="w-3.5 h-3.5 text-accent" />已复制</> : '复制'}
               </button>
             </div>
             <ol className="mt-3 flex flex-col gap-2">
@@ -184,3 +210,4 @@ export default function Breakdown() {
     </div>
   )
 }
+

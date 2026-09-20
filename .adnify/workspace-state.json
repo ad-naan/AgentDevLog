@@ -1,19 +1,12 @@
 {
   "openFiles": [
-    {
-      "path": "preview://session/fc1753ac-0cfe-4280-a95b-e9cba105612f",
-      "kind": "preview",
-      "preview": {
-        "sessionId": "fc1753ac-0cfe-4280-a95b-e9cba105612f",
-        "url": "http://localhost:3000/",
-        "title": "DevLog · 工作日志",
-        "source": "manual",
-        "workspaceRoot": "E:\\Project\\work-logs"
-      }
-    },
-    "E:/Project/work-logs/src/lib/agent.ts"
+    "E:/Project/work-logs/src/components/pages/Analytics.tsx",
+    "E:/Project/work-logs/src/lib/agent.ts",
+    "E:/Project/work-logs/src/components/pages/LogEditor.tsx",
+    "E:/Project/work-logs/src/components/pages/Breakdown.tsx",
+    "E:/Project/work-logs/src/lib/github.ts"
   ],
-  "activeFile": "preview://session/fc1753ac-0cfe-4280-a95b-e9cba105612f",
+  "activeFile": null,
   "expandedFolders": [
     "E:\\Project\\work-logs",
     "E:\\Project\\work-logs\\design\\874af9b3-46a5-4e46-91af-995a60f3fd64-0",
@@ -50,6 +43,6 @@
     },
     "editorVisible": true,
     "chatVisible": true,
-    "activeSidePanel": "explorer"
+    "activeSidePanel": "git"
   }
 }

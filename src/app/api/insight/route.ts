@@ -25,7 +25,7 @@ export async function POST(req: Request) {
       recentLogs: logs.map((l) => ({ date: l.date, title: l.title, content: l.content })),
       recentActivities: acts.map((a) => ({ type: a.type, title: a.title, repo: a.repo, ts: a.ts.toISOString() })),
       openTodos: todos.map((t) => ({ title: t.title, priority: t.priority, due: t.due })),
-      breakdowns: breakdowns.map((b) => ({ requirement: b.requirement, modules: b.modules.length })),
+      breakdowns: breakdowns.map((b) => ({ requirement: b.requirement, modules: Array.isArray(b.modules) ? b.modules.length : 0 })),
     })
     return NextResponse.json(insight)
   } catch (e) {

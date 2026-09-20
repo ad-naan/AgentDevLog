@@ -58,7 +58,7 @@ export async function syncGithub(userId: number) {
           meta = `#${e.id.slice(-4)} · ${e.created_at.replace('T', ' ').slice(0, 16)}`
         } else if (e.type === 'IssuesEvent' && e.payload?.issue) {
           type = 'issue'
-          title = e.payload.issue.title
+          title = e.payload.issue.title || `Issue #${e.id}`
           desc = `issue ${e.payload.action}`
         }
         if (!type) continue
