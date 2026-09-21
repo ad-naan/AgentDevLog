@@ -4,13 +4,14 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStore } from '../StoreProvider'
 import type { Scope } from '@/lib/types'
+import { IconGear, IconSpark, IconClose } from '../icons'
 
 export default function Settings() {
   const { s, refresh, api } = useStore()
   const router = useRouter()
   const [repoInput, setRepoInput] = useState('')
   const [token, setToken] = useState('')
-const [ghUser, setGhUser] = useState('')
+  const [ghUser, setGhUser] = useState('')
   const [name, setName] = useState('')
   const [title, setTitle] = useState('')
   const [llmBaseUrl, setLlmBaseUrl] = useState('')
@@ -20,11 +21,16 @@ const [ghUser, setGhUser] = useState('')
   const [llmStatus, setLlmStatus] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  if (!s) return <p className="text-faint text-[13px]">加载中…</p>
+
+  if (!s) return <p className="text-faint text-[13px] p-6">加载中…</p>
 
   const validRepo = /^[\w.-]+\/[\w.-]+$/
   const patch = (body: Record<string, unknown>) =>
-    api('/api/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    api('/api/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
 
   const addRepo = async () => {
     const r = repoInput.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '')
@@ -33,35 +39,45 @@ const [ghUser, setGhUser] = useState('')
     setRepoInput('')
     setStatus(`已添加关注仓库 ${r}，点击「立即同步」拉取活动`)
   }
-  const removeRepo = (r: string) => patch({ watchedRepos: s.settings.watchedRepos.filter((x) => x !== r) })
+
+  const removeRepo = (r: string) =>
+    patch({ watchedRepos: s.settings.watchedRepos.filter((x) => x !== r) })
+
   const doSync = async () => {
-    setBusy(true); setStatus(null)
+    setBusy(true)
+    setStatus(null)
     if (token.trim()) await patch({ githubToken: token.trim() })
     if (ghUser.trim()) await patch({ githubUser: ghUser.trim().replace(/^@/, '') })
     const r = await fetch('/api/sync', { method: 'POST' })
-    const j = await r.json() as { fetched: number; errors: string[] }
+    const j = (await r.json()) as { fetched: number; errors: string[] }
     await refresh()
     setBusy(false)
-    setStatus(j.errors.length
-      ? `拉取 ${j.fetched} 条真实活动；部分仓库失败：${j.errors.join('；')}（公共仓库可不填 token，私有仓库或限流时需填）`
-      : `同步完成：从 GitHub 拉取 ${j.fetched} 条真实活动`)
+    setStatus(
+      j.errors.length
+        ? `拉取 ${j.fetched} 条真实活动；部分仓库失败：${j.errors.join('；')}（公共仓库可不填 token，私有仓库或限流时需填）`
+        : `同步完成：从 GitHub 拉取 ${j.fetched} 条真实活动`,
+    )
   }
+
   const saveProfile = async () => {
     await patch({ userName: name || s.user.name, userTitle: title || s.user.title })
-    setStatus('个人信息已保存')
+    setStatus('个人信息已成功保存')
   }
+
   const saveLLM = async () => {
-    setLlmBusy(true); setLlmStatus(null)
+    setLlmBusy(true)
+    setLlmStatus(null)
     await patch({
       llmBaseUrl: llmBaseUrl || s.settings.llmBaseUrl,
       llmModel: llmModel || s.settings.llmModel,
       llmApiKey: llmApiKey || s.settings.llmApiKey,
     })
     const r = await fetch('/api/llm/test', { method: 'POST' })
-    const j = await r.json() as { ok: boolean; message: string }
+    const j = (await r.json()) as { ok: boolean; message: string }
     setLlmBusy(false)
     setLlmStatus(j.message)
   }
+
   const reset = async () => {
     if (!confirm('确定清空数据库中所有业务数据吗？')) return
     await api('/api/reset', { method: 'POST' })
@@ -70,125 +86,229 @@ const [ghUser, setGhUser] = useState('')
   }
 
   return (
-    <div className="max-w-[760px] mx-auto flex flex-col gap-4 pb-8">
-      <section className="bg-card border border-line rounded-2xl p-5">
-        <h2 className="text-[15px] font-bold mb-1">个人信息</h2>
-        <p className="text-[12px] text-dim mb-4">用于问候语、日志署名与侧栏展示（保存在 PostgreSQL）。</p>
-        <div className="grid grid-cols-2 gap-4">
+    <div className="max-w-[840px] mx-auto flex flex-col gap-5 pb-12">
+      <div className="flex items-center gap-3 mb-1">
+        <div className="w-10 h-10 rounded-2xl bg-card border border-line flex items-center justify-center text-accent">
+          <IconGear className="w-5 h-5" />
+        </div>
+        <div>
+          <h1 className="text-[22px] font-bold text-txt">工作台设置</h1>
+          <p className="text-[13px] text-dim mt-0.5">配置个人资料、关注仓库、默认分区与 AI 模型服务</p>
+        </div>
+      </div>
+
+      {/* 个人信息卡片 */}
+      <section className="bg-card border border-line rounded-2xl p-5 shadow-sm">
+        <h2 className="text-[15px] font-bold text-txt mb-1">个人信息</h2>
+        <p className="text-[12px] text-dim mb-4">用于问候语、日志署名与侧栏展示（持久化保存在 PostgreSQL）。</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <label className="block">
-            <span className="text-[12px] text-dim">昵称</span>
-            <input value={name || s.user.name} onChange={(e) => setName(e.target.value)}
-              className="mt-1.5 w-full bg-inset border border-line rounded-lg px-3 py-2 text-[13px] outline-none focus:border-line2" />
+            <span className="text-[12px] text-dim font-medium">昵称</span>
+            <input
+              value={name || s.user.name}
+              onChange={(e) => setName(e.target.value)}
+              className="mt-1.5 w-full bg-inset border border-line rounded-xl px-3.5 py-2 text-[13px] outline-none focus:border-accent transition-colors"
+            />
           </label>
           <label className="block">
-            <span className="text-[12px] text-dim">职位</span>
-            <input value={title || s.user.title} onChange={(e) => setTitle(e.target.value)}
-              className="mt-1.5 w-full bg-inset border border-line rounded-lg px-3 py-2 text-[13px] outline-none focus:border-line2" />
+            <span className="text-[12px] text-dim font-medium">职位</span>
+            <input
+              value={title || s.user.title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="mt-1.5 w-full bg-inset border border-line rounded-xl px-3.5 py-2 text-[13px] outline-none focus:border-accent transition-colors"
+            />
           </label>
         </div>
-        <button onClick={saveProfile}
-          className="mt-4 px-4 py-2 rounded-lg bg-accent text-[#04110b] text-[13px] font-semibold">保存</button>
+        <button
+          onClick={saveProfile}
+          className="btn-press mt-4 px-4 py-2 rounded-xl bg-accent text-[#04110b] text-[12.5px] font-semibold hover:bg-accent-hover shadow-[0_0_12px_rgba(61,220,151,.3)]">
+          保存个人信息
+        </button>
       </section>
 
-      <section className="bg-card border border-line rounded-2xl p-5">
-        <h2 className="text-[15px] font-bold mb-1">工作 / 生活分区</h2>
-        <p className="text-[12px] text-dim mb-4">每条日志、待办与活动都会归属一个分区，侧栏顶部可随时切换视图；这里设置新建内容的默认分区。</p>
-        <div className="flex gap-2">
-          {([['work', '工作'], ['life', '生活']] as [Scope, string][]).map(([k, l]) => (
-            <button key={k} onClick={() => patch({ defaultScope: k })}
-              className={`px-4 py-2 rounded-lg text-[13px] border ${s.settings.defaultScope === k
-                ? k === 'work' ? 'border-accent bg-[rgba(61,220,151,.12)] text-accent' : 'border-orange bg-[rgba(240,136,62,.12)] text-orange'
-                : 'border-line text-dim hover:text-txt'}`}>{l}</button>
+      {/* 分区偏好 */}
+      <section className="bg-card border border-line rounded-2xl p-5 shadow-sm">
+        <h2 className="text-[15px] font-bold text-txt mb-1">默认视图分区</h2>
+        <p className="text-[12px] text-dim mb-4">
+          每条日志、待办与活动都归属一个分区；在此设置新建内容的默认初始分区。
+        </p>
+        <div className="flex gap-2.5">
+          {(
+            [
+              ['work', '工作分区'],
+              ['life', '生活分区'],
+            ] as [Scope, string][]
+          ).map(([k, l]) => (
+            <button
+              key={k}
+              onClick={() => patch({ defaultScope: k })}
+              className={`btn-press px-4 py-2 rounded-xl text-[13px] font-medium border transition-all cursor-pointer ${
+                s.settings.defaultScope === k
+                  ? k === 'work'
+                    ? 'border-accent bg-[rgba(61,220,151,.12)] text-accent shadow-[0_0_12px_rgba(61,220,151,.25)]'
+                    : 'border-orange bg-[rgba(240,136,62,.12)] text-orange shadow-[0_0_12px_rgba(240,136,62,.25)]'
+                  : 'border-line text-dim hover:text-txt bg-inset'
+              }`}>
+              {l}
+            </button>
           ))}
         </div>
       </section>
 
-      <section className="bg-card border border-line rounded-2xl p-5">
-        <h2 className="text-[15px] font-bold mb-1">关注的 GitHub 仓库</h2>
-        <p className="text-[12px] text-dim mb-4">工作台的动态、commits 统计、热力图都只统计这些仓库。格式：<code className="font-mono text-accent">owner/name</code></p>
+      {/* 关注的 GitHub 仓库 */}
+      <section className="bg-card border border-line rounded-2xl p-5 shadow-sm">
+        <h2 className="text-[15px] font-bold text-txt mb-1">关注的 GitHub 仓库</h2>
+        <p className="text-[12px] text-dim mb-4">
+          工作台的活动动态、提交统计与热力图只统计关注的仓库。格式：
+          <code className="font-mono text-accent bg-accent/10 px-1.5 py-0.5 rounded ml-1">owner/repo</code>
+        </p>
         <div className="flex gap-2">
-          <input value={repoInput} onChange={(e) => setRepoInput(e.target.value)}
+          <input
+            value={repoInput}
+            onChange={(e) => setRepoInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addRepo()}
             placeholder="例如：vercel/next.js"
-            className="flex-1 bg-inset border border-line rounded-lg px-3 py-2 text-[13px] font-mono outline-none focus:border-line2" />
-          <button onClick={addRepo} className="px-4 py-2 rounded-lg border border-line2 text-[13px] hover:bg-[rgba(255,255,255,.05)]">添加</button>
+            className="flex-1 bg-inset border border-line rounded-xl px-3.5 py-2 text-[13px] font-mono outline-none focus:border-accent transition-colors"
+          />
+          <button
+            onClick={addRepo}
+            className="btn-press px-4 py-2 rounded-xl border border-line2 text-[13px] hover:bg-white/[0.05] font-medium">
+            添加
+          </button>
         </div>
-        <div className="mt-3 flex flex-col gap-1.5">
+        <div className="mt-3 flex flex-col gap-2">
           {s.settings.watchedRepos.map((r) => (
-            <div key={r} className="flex items-center gap-3 bg-inset border border-line rounded-lg px-3 py-2">
-              <svg viewBox="0 0 16 16" width={15} height={15} fill="#8b94a3"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
-              <span className="font-mono text-[13px]">{r}</span>
-              <button onClick={() => removeRepo(r)} className="ml-auto text-faint hover:text-red text-[12px]">移除</button>
+            <div
+              key={r}
+              className="flex items-center gap-3 bg-inset border border-line rounded-xl px-3.5 py-2.5 hover:border-line2 transition-colors">
+              <svg viewBox="0 0 16 16" width={15} height={15} fill="#8b94a3">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+              </svg>
+              <span className="font-mono text-[13px] text-txt">{r}</span>
+              <button
+                onClick={() => removeRepo(r)}
+                className="btn-press ml-auto text-faint hover:text-red p-1 rounded transition-colors">
+                <IconClose className="w-3.5 h-3.5" />
+              </button>
             </div>
           ))}
-          {s.settings.watchedRepos.length === 0 && <p className="text-[12px] text-faint py-2">暂无关注仓库 —— 各页数据将为空，先添加几个吧。</p>}
+          {s.settings.watchedRepos.length === 0 && (
+            <p className="text-[12px] text-faint py-3 text-center border border-dashed border-line rounded-xl">
+              暂无关注仓库，添加几个仓库后即可同步代码动态与提交热力图。
+            </p>
+          )}
         </div>
       </section>
 
-      <section className="bg-card border border-line rounded-2xl p-5">
-        <h2 className="text-[15px] font-bold mb-1">AI / LLM 配置</h2>
-        <p className="text-[12px] text-dim mb-4">OpenAI 协议兼容接口。配置后「需求拆解」「日报生成」由 LLM 驱动；未配置或调用失败时自动回退本地规则引擎。三项都填写才会启用。</p>
+      {/* AI / LLM 配置 */}
+      <section className="insight-glow rounded-2xl p-5 shadow-lg">
+        <div className="flex items-center gap-2 mb-1">
+          <IconSpark className="w-4 h-4 text-purple" />
+          <h2 className="text-[15px] font-bold text-txt">AI / LLM 模型服务</h2>
+          <span
+            className={`ml-auto text-[11px] px-2.5 py-0.5 rounded-full font-medium ${
+              s.settings.llmBaseUrl && s.settings.llmModel && s.settings.llmApiKey
+                ? 'bg-accent/15 text-accent border border-accent/30'
+                : 'bg-white/[0.04] text-faint border border-line'
+            }`}>
+            {s.settings.llmBaseUrl && s.settings.llmModel && s.settings.llmApiKey ? 'LLM 已就绪' : '本地规则模式'}
+          </span>
+        </div>
+        <p className="text-[12px] text-dim mb-4">
+          兼容 OpenAI 协议接口（如 DeepSeek / Qwen / OpenAI 等）。配置后驱动需求拆解、日报生成与 AI 助手对话。
+        </p>
         <div className="flex flex-col gap-3">
           <label className="block">
-            <span className="text-[12px] text-dim">Base URL{s.settings.llmBaseUrl ? '（已配置）' : ''}</span>
-            <input value={llmBaseUrl || s.settings.llmBaseUrl} onChange={(e) => setLlmBaseUrl(e.target.value)}
+            <span className="text-[12px] text-dim font-medium">Base URL</span>
+            <input
+              value={llmBaseUrl || s.settings.llmBaseUrl}
+              onChange={(e) => setLlmBaseUrl(e.target.value)}
               placeholder="https://api.openai.com/v1"
-              className="mt-1.5 w-full bg-inset border border-line rounded-lg px-3 py-2 text-[13px] font-mono outline-none focus:border-line2" />
+              className="mt-1.5 w-full bg-inset border border-line rounded-xl px-3.5 py-2 text-[13px] font-mono outline-none focus:border-purple transition-colors"
+            />
           </label>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <label className="block">
-              <span className="text-[12px] text-dim">模型</span>
-              <input value={llmModel || s.settings.llmModel} onChange={(e) => setLlmModel(e.target.value)}
-                placeholder="gpt-4o-mini"
-                className="mt-1.5 w-full bg-inset border border-line rounded-lg px-3 py-2 text-[13px] font-mono outline-none focus:border-line2" />
+              <span className="text-[12px] text-dim font-medium">模型名称 (Model)</span>
+              <input
+                value={llmModel || s.settings.llmModel}
+                onChange={(e) => setLlmModel(e.target.value)}
+                placeholder="gpt-4o-mini / deepseek-chat"
+                className="mt-1.5 w-full bg-inset border border-line rounded-xl px-3.5 py-2 text-[13px] font-mono outline-none focus:border-purple transition-colors"
+              />
             </label>
             <label className="block">
-              <span className="text-[12px] text-dim">API Key</span>
-              <input value={llmApiKey} onChange={(e) => setLlmApiKey(e.target.value)} type="password"
+              <span className="text-[12px] text-dim font-medium">API Key</span>
+              <input
+                value={llmApiKey}
+                onChange={(e) => setLlmApiKey(e.target.value)}
+                type="password"
                 placeholder={s.settings.llmApiKey ? '已保存（留空则不修改）' : 'sk-...'}
-                className="mt-1.5 w-full bg-inset border border-line rounded-lg px-3 py-2 text-[13px] font-mono outline-none focus:border-line2" />
+                className="mt-1.5 w-full bg-inset border border-line rounded-xl px-3.5 py-2 text-[13px] font-mono outline-none focus:border-purple transition-colors"
+              />
             </label>
           </div>
         </div>
         <div className="mt-4 flex items-center gap-3">
-          <button onClick={saveLLM} disabled={llmBusy}
-            className="px-4 py-2 rounded-lg bg-accent text-[#04110b] text-[13px] font-semibold disabled:opacity-50">
+          <button
+            onClick={saveLLM}
+            disabled={llmBusy}
+            className="btn-press px-4 py-2 rounded-xl bg-gradient-to-r from-[#6D5EF0] to-[#4F7CF0] text-white text-[12.5px] font-semibold hover:shadow-[0_0_14px_rgba(109,94,240,.4)] disabled:opacity-50">
             {llmBusy ? '测试中…' : '保存并测试连通'}
           </button>
-          {s.settings.llmBaseUrl && s.settings.llmModel && s.settings.llmApiKey
-            ? <span className="text-[12px] text-accent">已启用 LLM</span>
-            : <span className="text-[12px] text-faint">未启用（使用本地规则）</span>}
         </div>
-        {llmStatus && <p className="mt-3 text-[12px] text-dim leading-relaxed">{llmStatus}</p>}
+        {llmStatus && (
+          <p className="mt-3 text-[12px] text-dim bg-inset/80 p-3 rounded-xl border border-line leading-relaxed">
+            {llmStatus}
+          </p>
+        )}
       </section>
 
-      <section className="bg-card border border-line rounded-2xl p-5">
-        <h2 className="text-[15px] font-bold mb-1">GitHub 同步</h2>
-        <p className="text-[12px] text-dim mb-4">服务端从真实 GitHub API 拉取关注仓库的 Push / PR / Issue 事件，以事件 id 去重后写入 PostgreSQL。公共仓库无需 token；私有仓库或触发限流时填写 Personal Access Token。</p>
-        <div className="grid grid-cols-2 gap-4">
+      {/* GitHub 同步与数据重置 */}
+      <section className="bg-card border border-line rounded-2xl p-5 shadow-sm">
+        <h2 className="text-[15px] font-bold text-txt mb-1">GitHub 同步与存储</h2>
+        <p className="text-[12px] text-dim mb-4">
+          从真实 GitHub API 拉取 Push / PR / Issue 事件并写入 PostgreSQL。公共仓库可不填 token，私有仓库需填写 PAT。
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <label className="block">
-            <span className="text-[12px] text-dim">GitHub 用户名（只同步我的活动）</span>
-            <input value={ghUser} onChange={(e) => setGhUser(e.target.value)}
+            <span className="text-[12px] text-dim font-medium">GitHub 用户名（只同步我的活动）</span>
+            <input
+              value={ghUser}
+              onChange={(e) => setGhUser(e.target.value)}
               placeholder={s.settings.githubUser || '例如：ad-naan'}
-              className="mt-1.5 w-full bg-inset border border-line rounded-lg px-3 py-2 text-[13px] font-mono outline-none focus:border-line2" />
+              className="mt-1.5 w-full bg-inset border border-line rounded-xl px-3.5 py-2 text-[13px] font-mono outline-none focus:border-accent transition-colors"
+            />
           </label>
           <label className="block">
-            <span className="text-[12px] text-dim">Personal Access Token</span>
-            <input value={token} onChange={(e) => setToken(e.target.value)} type="password" placeholder="ghp_...（可选）"
-              className="mt-1.5 w-full bg-inset border border-line rounded-lg px-3 py-2 text-[13px] font-mono outline-none focus:border-line2" />
+            <span className="text-[12px] text-dim font-medium">Personal Access Token (PAT)</span>
+            <input
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+              type="password"
+              placeholder="ghp_...（可选）"
+              className="mt-1.5 w-full bg-inset border border-line rounded-xl px-3.5 py-2 text-[13px] font-mono outline-none focus:border-accent transition-colors"
+            />
           </label>
         </div>
         <div className="mt-4 flex items-center gap-3">
-          <button onClick={doSync} disabled={busy}
-            className="px-4 py-2 rounded-lg bg-accent text-[#04110b] text-[13px] font-semibold disabled:opacity-50">
-            {busy ? '同步中…' : '立即同步'}
+          <button
+            onClick={doSync}
+            disabled={busy}
+            className="btn-press px-4 py-2 rounded-xl bg-accent text-[#04110b] text-[12.5px] font-semibold hover:bg-accent-hover disabled:opacity-50 shadow-[0_0_12px_rgba(61,220,151,.3)]">
+            {busy ? '正在同步…' : '立即同步 GitHub'}
           </button>
-          <button onClick={reset}
-            className="px-4 py-2 rounded-lg border border-red/40 text-red text-[13px] hover:bg-[rgba(248,81,73,.1)]">
-            清空全部数据
+          <button
+            onClick={reset}
+            className="btn-press ml-auto px-4 py-2 rounded-xl border border-red/40 text-red text-[12.5px] hover:bg-red/10 font-medium">
+            清空所有数据
           </button>
         </div>
-        {status && <p className="mt-3 text-[12px] text-dim leading-relaxed">{status}</p>}
+        {status && (
+          <p className="mt-3 text-[12px] text-dim bg-inset/80 p-3 rounded-xl border border-line leading-relaxed">
+            {status}
+          </p>
+        )}
       </section>
     </div>
   )

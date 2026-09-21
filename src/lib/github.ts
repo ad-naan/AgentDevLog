@@ -18,6 +18,12 @@ export async function syncGithub(userId: number) {
 
   let fetched = 0
   const errors: string[] = []
+  // 预载已同步的 extId，命中直接跳过，避免 create 撞唯一键产生 prisma:error 日志
+  const existing = new Set(
+    (await prisma.activity.findMany({ where: { userId }, select: { extId: true } }))
+      .map((a) => a.extId)
+      .filter((v): v is string => v !== null),
+  )
 
   for (const repo of settings.watchedRepos.slice(0, 5)) {
     const headers: Record<string, string> = headersBase
@@ -125,7 +131,8 @@ export async function syncGithub(userId: number) {
         }
         if (!type) continue
 
-        // extId 唯一键去重：已存在则跳过
+        // extId 唯一键去重：已存在则跳过（预载集合，不触发数据库错误）
+        if (existing.has(`gh:${e.id}`)) continue
         const created = await prisma.activity
           .create({
             data: {
@@ -133,8 +140,9 @@ export async function syncGithub(userId: number) {
               extId: `gh:${e.id}`,
             },
           })
-          .catch(() => null) // 唯一键冲突 → 已同步过
+          .catch(() => null) // 并发兜底
         fetched += created ? 1 : 0
+        if (created) existing.add(`gh:${e.id}`)
 
         // 新入库的 PushEvent 才累计当日提交数（真实条数，未知时按 1 次推送计）
         if (created && type === 'commit') {
@@ -178,16 +186,19 @@ export async function syncGithub(userId: number) {
           if (ts < since) continue
           const day = ts.toISOString().slice(0, 10)
           const title = (c.commit?.message || '').split('\n')[0].slice(0, 200) || `commit ${c.sha.slice(0, 7)}`
+          const extId = `ghc:${repo}:${c.sha}`
+          if (existing.has(extId)) continue
           const created = await prisma.activity
             .create({
               data: {
                 userId, type: 'commit', repo, scope: 'work', title,
                 meta: `${c.sha.slice(0, 7)} · ${ts.toISOString().replace('T', ' ').slice(0, 16)}`,
-                ts, extId: `ghc:${repo}:${c.sha}`,
+                ts, extId,
               },
             })
-            .catch(() => null)
+            .catch(() => null) // 并发兜底
           fetched += created ? 1 : 0
+          if (created) existing.add(extId)
           if (created) {
             await prisma.repoCommits.upsert({
               where: { userId_repo_day: { userId, repo, day } },

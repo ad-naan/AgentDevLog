@@ -3,7 +3,10 @@
 import { useState } from 'react'
 import { useStore } from '../StoreProvider'
 import { useToast, apiError } from '../Toast'
-import { IconCheck, IconClock, IconAlert, IconCalendar, IconReport, IconGear } from '../icons'
+import {
+  IconCheck, IconClock, IconAlert, IconCalendar,
+  IconReport, IconRefresh, IconSpark,
+} from '../icons'
 
 export default function Reports() {
   const { s, scope, api } = useStore()
@@ -13,7 +16,8 @@ export default function Reports() {
   const [adopting, setAdopting] = useState(false)
   const [manualNotes, setManualNotes] = useState('')
   const [showManual, setShowManual] = useState(false)
-  if (!s) return <p className="text-faint text-[13px]">加载中…</p>
+
+  if (!s) return <p className="text-faint text-[13px] p-6">加载中…</p>
 
   const reports = s.reports
   const r = reports.find((x) => x.id === sel) || reports[0]
@@ -21,39 +25,51 @@ export default function Reports() {
   const confirm = async () => {
     if (!r) return
     const res = await api(`/api/reports/${r.id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'confirmed' }),
     })
-    res.ok ? toast('报告已确认归档', 'success') : toast(await apiError(res), 'error')
+    if (res.ok) {
+      toast('报告已确认归档', 'success')
+    } else {
+      toast(await apiError(res), 'error')
+    }
   }
+
   const generate = async (period: 'day' | 'week') => {
     if (busy) return
     setBusy(true)
     try {
       const res = await fetch('/api/reports/generate', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scope, period, manualNotes: period === 'week' ? manualNotes : '' }),
       })
       if (!res.ok) {
         toast(await apiError(res), 'error')
         return
       }
-      const j = await res.json() as { id: number }
+      const j = (await res.json()) as { id: number }
       setSel(j.id)
-      toast(period === 'week' ? '✦ AI 已生成上周周报（按项目量化）' : '✦ AI 已基于真实日志与活动生成今日报告', 'success')
+      toast(
+        period === 'week' ? '✦ AI 已生成上周周报（按项目量化）' : '✦ AI 已基于真实日志与活动生成今日报告',
+        'success',
+      )
     } finally {
       setBusy(false)
-      await new Promise((ok) => setTimeout(ok, 350)) // 让骨架屏动画完整呈现
     }
   }
-  const regenerate = () => generate((r?.basis.kind as 'day' | 'week' | undefined) ?? 'day')
+
+  const regenerate = () => generate(((r?.basis as { kind?: 'day' | 'week' })?.kind) ?? 'day')
+
   const plansToTodos = async () => {
     if (!r || adopting) return
     setAdopting(true)
     const titles = r.sections.plans.filter(Boolean).slice(0, 6)
     for (const title of titles) {
       await api('/api/todos', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, priority: 'P2', due: '明天', scope, source: 'AI 日报', tag: '计划' }),
       })
     }
@@ -62,154 +78,215 @@ export default function Reports() {
   }
 
   const manualPanel = (
-    <div className="w-full max-w-md">
-      <button onClick={() => setShowManual((v) => !v)}
-        className="btn-press text-[11.5px] text-faint hover:text-dim flex items-center gap-1">
-        {showManual ? '▾' : '▸'} 补充工作（git 未记录的线下/本地工作，用于周报）
+    <div className="w-full">
+      <button
+        onClick={() => setShowManual((v) => !v)}
+        className="btn-press text-[11.5px] text-faint hover:text-dim flex items-center gap-1.5 py-1">
+        <span>{showManual ? '▾' : '▸'}</span>
+        <span>补充工作（git 未记录的线下/会议工作，用于周报）</span>
       </button>
       {showManual && (
-        <textarea value={manualNotes} onChange={(e) => setManualNotes(e.target.value)}
-          rows={4} placeholder={'每行一条，如：\n- 主导支付模块需求评审，确定 3 个接口方案\n- 排查线上订单超时问题并给出临时方案\n- 输出前端性能优化设计文档'}
-          className="mt-2 w-full rounded-lg bg-[rgba(255,255,255,.03)] border border-line2 px-3 py-2 text-[12px] text-dim leading-relaxed outline-none focus:border-[#4F7CF0] resize-y" />
+        <textarea
+          value={manualNotes}
+          onChange={(e) => setManualNotes(e.target.value)}
+          rows={3}
+          placeholder={'每行一条，例如：\n- 主导支付模块架构评审，确定 3 个核心接口方案\n- 排查生产环境数据库连接池耗尽问题并完成调优'}
+          className="mt-2 w-full rounded-xl bg-inset border border-line px-3 py-2 text-[12px] text-dim leading-relaxed outline-none focus:border-line2 resize-y"
+        />
       )}
     </div>
   )
 
-  if (!r) return (
-    <div className="flex flex-col items-center justify-center h-full gap-4">
-      <p className="text-faint text-[13px]">还没有报告。</p>
-      {manualPanel}
-      <div className="flex items-center gap-3">
-        <button onClick={() => generate('day')} disabled={busy}
-          className={`btn-press px-4 py-2 rounded-lg text-white text-[13px] font-semibold disabled:opacity-60 ${busy ? 'ai-btn-busy' : 'bg-gradient-to-r from-[#6D5EF0] to-[#4F7CF0]'}`}>
-          {busy ? '✦ AI 生成中…' : '✦ 生成今日报告'}
-        </button>
-        <button onClick={() => generate('week')} disabled={busy}
-          className="btn-press px-4 py-2 rounded-lg border border-line2 text-[13px] font-medium hover:bg-[rgba(255,255,255,.04)] disabled:opacity-60">
-          ✦ 生成上周周报
-        </button>
+  if (!r) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4 max-w-md mx-auto text-center">
+        <div className="w-12 h-12 rounded-2xl bg-card border border-line flex items-center justify-center text-dim mb-1">
+          <IconReport className="w-6 h-6" />
+        </div>
+        <h2 className="text-[17px] font-bold text-txt">暂无报告归档</h2>
+        <p className="text-[13px] text-dim">
+          基于当前已记录的工作日志、GitHub 提交与 PR 动态，由 AI 自动生成量化结构的工作日报或周报。
+        </p>
+        {manualPanel}
+        <div className="flex items-center gap-3 mt-2">
+          <button
+            onClick={() => generate('day')}
+            disabled={busy}
+            className={`btn-press px-5 py-2.5 rounded-xl text-white text-[13px] font-semibold disabled:opacity-60 shadow-lg ${
+              busy ? 'ai-btn-busy' : 'bg-gradient-to-r from-[#6D5EF0] to-[#4F7CF0]'
+            }`}>
+            {busy ? '✦ AI 正在生成中…' : '✦ 生成今日日报'}
+          </button>
+          <button
+            onClick={() => generate('week')}
+            disabled={busy}
+            className="btn-press px-4 py-2.5 rounded-xl border border-line text-[13px] font-medium text-dim hover:text-txt hover:bg-white/[0.04] disabled:opacity-60">
+            ✦ 生成上周周报
+          </button>
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
 
-  const isWeek = (r.basis.kind as string) === 'week'
-  const secs: [string, typeof IconCheck, string, string[]][] = isWeek
+  const isWeek = (r.basis as { kind?: string })?.kind === 'week'
+  const sections = isWeek
     ? [
-        ['本周重点项目进度', IconCheck, 'text-accent bg-[rgba(61,220,151,.15)]', r.sections.done],
-        ['未完成项目', IconClock, 'text-blue bg-[rgba(88,166,255,.15)]', r.sections.doing],
-        ['问题与风险', IconAlert, 'text-red bg-[rgba(248,81,73,.15)]', r.sections.risks],
-        ['下周计划（含预期产出）', IconCalendar, 'text-purple bg-[rgba(188,140,255,.15)]', r.sections.plans],
+        { title: '本周重点项目进度', Icon: IconCheck, color: 'text-accent', dot: 'bg-accent', items: r.sections.done },
+        { title: '进行中与未完成', Icon: IconClock, color: 'text-blue', dot: 'bg-blue', items: r.sections.doing },
+        { title: '风险与阻塞问题', Icon: IconAlert, color: 'text-red', dot: 'bg-red', items: r.sections.risks },
+        { title: '下周计划（含预期产出）', Icon: IconCalendar, color: 'text-purple', dot: 'bg-purple', items: r.sections.plans },
       ]
     : [
-        ['今日完成', IconCheck, 'text-accent bg-[rgba(61,220,151,.15)]', r.sections.done],
-        ['进行中', IconClock, 'text-blue bg-[rgba(88,166,255,.15)]', r.sections.doing],
-        ['风险与阻塞', IconAlert, 'text-red bg-[rgba(248,81,73,.15)]', r.sections.risks],
-        ['明日计划', IconCalendar, 'text-purple bg-[rgba(188,140,255,.15)]', r.sections.plans],
+        { title: '今日完成', Icon: IconCheck, color: 'text-accent', dot: 'bg-accent', items: r.sections.done },
+        { title: '进行中', Icon: IconClock, color: 'text-blue', dot: 'bg-blue', items: r.sections.doing },
+        { title: '风险与阻塞', Icon: IconAlert, color: 'text-red', dot: 'bg-red', items: r.sections.risks },
+        { title: '明日计划', Icon: IconCalendar, color: 'text-purple', dot: 'bg-purple', items: r.sections.plans },
       ]
 
   return (
-    <div className="grid grid-cols-[300px_1fr] gap-4 h-full min-h-0">
-      <div className="bg-card border border-line rounded-2xl flex flex-col min-h-0">
-        <div className="flex items-center px-4 py-3.5 border-b border-line">
-          <b className="text-[13.5px]">报告归档</b>
-          <button onClick={regenerate} disabled={busy} title="重新生成今日报告"
-            className={`btn-press ml-auto text-faint hover:text-dim ${busy ? 'animate-pulse' : ''}`}>
-            <IconGear className="w-3.5 h-3.5" />
+    <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-5 h-full min-h-0 max-w-[1400px] mx-auto overflow-hidden">
+      {/* 左栏：日报归档列表（对齐 design/e32f7db2） */}
+      <div className="bg-card border border-line rounded-2xl flex flex-col min-h-0 overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3.5 border-b border-line bg-white/[0.01]">
+          <b className="text-[13.5px] font-semibold">日报归档</b>
+          <button
+            onClick={regenerate}
+            disabled={busy}
+            title="重新生成报告"
+            className="btn-press text-faint hover:text-dim p-1">
+            <IconRefresh className={`w-3.5 h-3.5 ${busy ? 'animate-spin' : ''}`} />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-2">
+
+        <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
           {reports.map((x) => {
             const on = x.id === r.id
             return (
-              <button key={x.id} onClick={() => setSel(x.id)}
-                className={`relative w-full text-left rounded-lg px-3 py-2.5 mb-1 ${on ? 'bg-[#182131]' : 'hover:bg-[rgba(255,255,255,.03)]'}`}>
-                {on && <span className="absolute left-0 top-2 bottom-2 w-[3px] bg-accent rounded-full" />}
+              <button
+                key={x.id}
+                onClick={() => setSel(x.id)}
+                className={`w-full text-left rounded-xl px-3 py-2.5 transition-all relative ${
+                  on
+                    ? 'bg-[#182131] border border-line2 shadow-sm'
+                    : 'hover:bg-white/[0.03] border border-transparent'
+                }`}>
+                {on && <span className="absolute left-1 top-2.5 bottom-2.5 w-1 bg-accent rounded-full shadow-[0_0_8px_#3ddc97]" />}
                 <div className="flex items-center gap-2">
-                  <span className="text-faint text-[12px]"><IconReport className="w-3.5 h-3.5" /></span>
-                  <span className="text-[13px] font-medium">{x.date}</span>
-                  <span className={`ml-auto text-[10px] px-2 py-px rounded-full ${x.status === 'draft'
-                    ? 'bg-[rgba(167,139,250,.15)] text-purple' : 'bg-[rgba(52,211,153,.14)] text-accent'}`}>
+                  <IconReport className="w-3.5 h-3.5 text-faint" />
+                  <span className="text-[13px] font-mono font-medium text-txt">{x.date}</span>
+                  <span
+                    className={`ml-auto text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                      x.status === 'draft'
+                        ? 'bg-[rgba(167,139,250,.15)] text-purple border border-[rgba(167,139,250,.25)]'
+                        : 'bg-[rgba(61,220,151,.15)] text-accent border border-[rgba(61,220,151,.25)]'
+                    }`}>
                     {x.status === 'draft' ? 'AI 起草' : '已确认'}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-faint text-[11px]">⑂</span>
-                  <span className="text-[11.5px] text-faint truncate">{x.summary}</span>
-                </div>
+                <div className="text-[11.5px] text-faint truncate mt-1 pl-5">{x.summary}</div>
               </button>
             )
           })}
         </div>
-        <div className="border-t border-line px-4 py-3 flex flex-col gap-2">
+
+        <div className="border-t border-line px-3.5 py-3 flex flex-col gap-2 bg-inset/40">
           {manualPanel}
-          <button onClick={() => generate('week')} disabled={busy}
-            className="btn-press w-full py-1.5 rounded-lg border border-line2 text-[12px] font-medium hover:bg-[rgba(255,255,255,.04)] disabled:opacity-60">
-            ✦ 生成上周周报（含补充）
+          <button
+            onClick={() => generate('week')}
+            disabled={busy}
+            className="btn-press w-full py-2 rounded-xl border border-line text-[12px] font-medium text-dim hover:text-txt hover:bg-white/[0.04] disabled:opacity-60">
+            ✦ 生成上周周报
           </button>
-          <div className="text-[11px] text-faint">共 {reports.length} 篇报告</div>
+          <div className="text-[11px] text-faint text-center">共 {reports.length} 篇归档</div>
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 min-h-0">
+      {/* 右栏：日报详情与四象限结构（对齐 design/e32f7db2） */}
+      <div className="flex flex-col gap-4 min-h-0 overflow-y-auto">
         {busy ? (
           <div className="bg-card border border-line rounded-2xl flex-1 p-6 fade-up">
             <div className="flex items-center gap-2 text-[12px] text-purple">
-              <span className="dot-breath w-1.5 h-1.5 rounded-full bg-purple inline-block" />
-              <span className="dot-breath w-1.5 h-1.5 rounded-full bg-purple inline-block" />
-              <span className="dot-breath w-1.5 h-1.5 rounded-full bg-purple inline-block" />
-              AI 正在综合日志、GitHub 活动与待办生成报告…
+              <span className="dot-breath w-1.5 h-1.5 rounded-full bg-purple" />
+              <span className="dot-breath w-1.5 h-1.5 rounded-full bg-purple" />
+              <span className="dot-breath w-1.5 h-1.5 rounded-full bg-purple" />
+              AI 正在整合今日日志、GitHub 活动与任务产出生成报告…
             </div>
-            <div className="skeleton h-7 w-48 mt-4" />
-            <div className="skeleton h-4 w-2/3 mt-4" />
-            <div className="grid grid-cols-3 gap-3 mt-5">
-              {[0, 1, 2].map((i) => <div key={i} className="skeleton h-16 rounded-xl" />)}
-            </div>
-            <div className="grid grid-cols-2 gap-4 mt-5">
+            <div className="skeleton h-8 w-60 mt-5" />
+            <div className="skeleton h-4 w-2/3 mt-3" />
+            <div className="grid grid-cols-2 gap-4 mt-6">
               {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="border border-line rounded-xl p-4">
-                  <div className="skeleton h-3.5 w-24" />
-                  <div className="skeleton h-3 w-full mt-3" />
-                  <div className="skeleton h-3 w-4/5 mt-2" />
+                <div key={i} className="border border-line rounded-2xl p-5">
+                  <div className="skeleton h-4 w-32" />
+                  <div className="skeleton h-3.5 w-full mt-3" />
+                  <div className="skeleton h-3.5 w-4/5 mt-2" />
                 </div>
               ))}
             </div>
           </div>
         ) : (
-          <div className="bg-card border border-line rounded-2xl flex-1 min-h-0 overflow-y-auto p-6 fade-up">
-            <div className="flex items-center gap-2 text-[12px] text-dim">
-              <span className="text-purple">✦</span>AI 生成报告
-              <span className="ml-auto inline-flex items-center gap-1.5 text-faint"><IconClock className="w-3 h-3" />生成于 {r.generatedAt}</span>
+          <div className="bg-card border border-line rounded-2xl flex-1 min-h-0 overflow-y-auto p-6 fade-up flex flex-col">
+            {/* 顶栏元信息 */}
+            <div className="flex items-center justify-between text-[12px] text-faint border-b border-line pb-3.5">
+              <div className="flex items-center gap-2 text-txt font-medium">
+                <IconSpark className="w-4 h-4 text-purple" />
+                <span>AI 生成{isWeek ? '周报' : '日报'}</span>
+              </div>
+              <div className="flex items-center gap-1.5 font-mono text-[11px]">
+                <IconClock className="w-3.5 h-3.5 text-faint" />
+                <span>生成于 {r.generatedAt}</span>
+              </div>
             </div>
-            <h1 className="text-[22px] font-bold mt-3 flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-lg border border-line2 flex items-center justify-center text-dim"><IconReport className="w-4 h-4" /></span>
-              {r.date} 日报
-            </h1>
-            <p className="text-[13px] text-dim mt-3">{r.summary}</p>
-            <div className="grid grid-cols-3 gap-3 mt-4">
-              {[['日志条目', r.basis.logs], ['Commits', r.basis.commits], ['PRs', r.basis.prs]].map(([l, n]) => (
-                <div key={l as string} className="bg-inset rounded-xl px-4 py-3">
-                  <div className="font-mono text-[20px] font-bold">{n as number}</div>
-                  <div className="text-[11px] text-faint">{l as string}</div>
-                </div>
-              ))}
+
+            {/* 大标题与数据基础统计 */}
+            <div className="mt-4">
+              <h1 className="text-[24px] font-bold text-txt flex items-center gap-2.5">
+                <span className="w-8 h-8 rounded-xl bg-inset border border-line flex items-center justify-center text-dim">
+                  <IconReport className="w-4.5 h-4.5 text-accent" />
+                </span>
+                {isWeek ? '周报' : '日报'} · {r.date}
+              </h1>
+              <div className="flex items-center gap-2 mt-2 text-[12px] text-faint font-mono">
+                <span>基于</span>
+                <span className="text-accent font-bold">{r.basis.logs} 条日志</span>
+                <span>+</span>
+                <span className="text-blue font-bold">{r.basis.commits} commits</span>
+                <span>+</span>
+                <span className="text-purple font-bold">{r.basis.prs} PRs</span>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-4 mt-5">
-              {secs.map(([title, Ic, cls, items]) => (
-                <div key={title} className="border border-line rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className={`w-6 h-6 rounded-md flex items-center justify-center ${cls}`}><Ic className="w-3.5 h-3.5" /></span>
-                    <b className="text-[13px]">{title}</b>
-                    <span className="ml-auto text-[11px] text-faint font-mono">{items.length}</span>
+
+            {/* 四象限卡片内容网格 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5 flex-1">
+              {sections.map(({ title, Icon, color, dot, items }) => (
+                <div
+                  key={title}
+                  className="border border-line rounded-2xl p-4.5 bg-inset/40 hover:border-line2 transition-colors flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className={`w-6 h-6 rounded-lg flex items-center justify-center bg-white/[0.04] ${color}`}>
+                        <Icon className="w-3.5 h-3.5" />
+                      </span>
+                      <b className="text-[13.5px] text-txt font-semibold">{title}</b>
+                      <span className="ml-auto text-[11px] font-mono text-faint bg-inset px-2 py-0.5 rounded-full border border-line">
+                        {items.length} 项
+                      </span>
+                    </div>
+                    <ul className="flex flex-col gap-2">
+                      {items.map((x, i) => (
+                        <li key={i} className="text-[12.5px] text-dim leading-relaxed flex items-start gap-2">
+                          <span className={`w-1.5 h-1.5 rounded-full ${dot} shrink-0 mt-2`} />
+                          <span className="flex-1">{x}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <ul className="flex flex-col gap-1.5">
-                    {items.map((x, i) => (
-                      <li key={i} className="text-[12.5px] text-dim leading-relaxed flex gap-1.5"><span className="text-faint">·</span>{x}</li>
-                    ))}
-                  </ul>
-                  {title === '明日计划' && items.some(Boolean) && (
-                    <button onClick={plansToTodos} disabled={adopting}
-                      className="btn-press mt-3 w-full py-1.5 rounded-lg border border-[#4a3a80] text-[11.5px] text-purple hover:bg-[rgba(139,92,246,.12)] disabled:opacity-60">
-                      {adopting ? '转入中…' : '✦ 一键转为明日待办'}
+
+                  {title.includes('计划') && items.some(Boolean) && (
+                    <button
+                      onClick={plansToTodos}
+                      disabled={adopting}
+                      className="btn-press mt-3.5 w-full py-2 rounded-xl border border-[rgba(139,92,246,.3)] text-[12px] text-purple hover:bg-[rgba(139,92,246,.12)] disabled:opacity-50 font-medium">
+                      {adopting ? '正在转入…' : '✦ 一键转为明日待办'}
                     </button>
                   )}
                 </div>
@@ -217,16 +294,38 @@ export default function Reports() {
             </div>
           </div>
         )}
-        <div className="ai-bar rounded-2xl px-5 py-3.5 flex items-center gap-3">
-          <span className="text-purple">✦</span>
-          <span className="text-[12.5px] text-dim">内容由服务端基于数据库中的真实日志与 GitHub 活动生成</span>
-          {!busy && r.status === 'draft' && (
-            <button onClick={confirm} className="btn-press ml-auto px-4 py-1.5 rounded-lg bg-accent text-[#04110b] text-[12.5px] font-semibold">确认无误</button>
-          )}
-          <button onClick={regenerate} disabled={busy}
-            className={`btn-press ${!busy && r.status === 'draft' ? '' : 'ml-auto '}px-4 py-1.5 rounded-lg border border-line2 text-[12.5px] hover:bg-[rgba(255,255,255,.05)] disabled:opacity-50`}>
-            {busy ? '生成中…' : '重新生成'}
-          </button>
+
+        {/* 底部 AI 悬浮操作底栏（高度还原 design/e32f7db2） */}
+        <div className="ai-bar rounded-2xl px-5 py-4 flex items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6D5EF0] to-[#4F7CF0] flex items-center justify-center text-white shrink-0 shadow-[0_0_12px_rgba(109,94,240,.5)]">
+              <IconSpark className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <b className="text-[12.5px] text-txt block">AI 正在持续学习你的工作节奏，让日报更懂你。</b>
+              <span className="text-[11px] text-faint truncate block">
+                基于你的真实日志、代码提交与待办数据，提供更精准的高级总结与建议。
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              onClick={regenerate}
+              disabled={busy}
+              className="btn-press px-4 py-2 rounded-xl border border-line2 text-[12.5px] font-medium text-dim hover:text-txt hover:bg-white/[0.04] disabled:opacity-50 inline-flex items-center gap-1.5">
+              <IconRefresh className="w-3.5 h-3.5" />
+              重新生成
+            </button>
+            {!busy && r.status === 'draft' && (
+              <button
+                onClick={confirm}
+                className="btn-press px-5 py-2 rounded-xl bg-accent text-[#04110b] text-[12.5px] font-semibold hover:bg-accent-hover shadow-[0_0_14px_rgba(61,220,151,.35)] inline-flex items-center gap-1.5">
+                <IconCheck className="w-3.5 h-3.5" strokeWidth={2.4} />
+                确认归档
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

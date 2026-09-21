@@ -288,6 +288,32 @@ export const IconUser = (p: P) => (
 // 书写光标
 export const IconPen = IconLog
 
+// 铃铛通知
+export const IconBell = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+  </svg>
+)
+
+// 更多操作（三点）
+export const IconMore = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="12" r="1.5" className="fill-current stroke-none" />
+    <circle cx="18" cy="12" r="1.5" className="fill-current stroke-none" />
+    <circle cx="6" cy="12" r="1.5" className="fill-current stroke-none" />
+  </svg>
+)
+
+// 机器人（AI 拆解）
+export const IconRobot = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="4" y="10" width="16" height="11" rx="2.5" />
+    <circle cx="12" cy="5" r="2" />
+    <path d="M12 7v3M8 15h.01M16 15h.01M9 18h6" />
+  </svg>
+)
+
 // ─── 品牌标识：「终端之眼」───
 // 圆角终端窗 + 眼瞳般的提示符，光标呼吸闪烁（见 globals.css .logo-cursor）
 export function Logo({ size = 34, className = '' }: { size?: number; className?: string }) {

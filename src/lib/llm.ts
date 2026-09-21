@@ -121,7 +121,7 @@ export async function testLLM(userId: number): Promise<{ ok: boolean; message: s
     return { ok: false, message: (e as Error).message }
   }
   try {
-    const reply = await chatLLM(
+    await chatLLM(
       cfg,
       [
         { role: 'system', content: '只回复两个字符：ok' },

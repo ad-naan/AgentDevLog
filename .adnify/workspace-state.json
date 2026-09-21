@@ -1,25 +1,24 @@
 {
   "openFiles": [
-    "D:/Project/mine/agent-workspace/README.md",
-    "D:/Project/mine/agent-workspace/src/lib/agent.ts",
-    "D:/Project/mine/agent-workspace/package.json",
-    "D:/Project/mine/agent-workspace/src/components/Shell.tsx",
-    "D:/Project/mine/agent-workspace/src/lib/data.ts",
-    "D:/Project/mine/agent-workspace/.env",
-    "D:/Project/mine/agent-workspace/prisma/inspect.mjs"
+    "git-diff://E:/Project/work-logs/src/lib/github.ts"
   ],
-  "activeFile": null,
+  "activeFile": "git-diff://E:/Project/work-logs/src/lib/github.ts",
   "expandedFolders": [
-    "D:\\Project\\mine\\agent-workspace",
-    "D:/Project/mine/agent-workspace/scripts",
-    "D:\\Project\\mine\\agent-workspace\\src\\lib",
-    "D:\\Project\\mine\\agent-workspace\\prisma"
+    "E:\\Project\\work-logs",
+    "E:\\Project\\work-logs\\design\\874af9b3-46a5-4e46-91af-995a60f3fd64-0",
+    "E:\\Project\\work-logs\\design\\bf2f03b8-9c89-4262-bf0f-ee9c88f9a1f6-0",
+    "E:\\Project\\work-logs\\design\\e32f7db2-fe25-4301-aa06-858bedee9f4e-0",
+    "E:\\Project\\work-logs\\app",
+    "E:\\Project\\work-logs\\src\\lib",
+    "E:\\Project\\work-logs\\src\\app\\api",
+    "E:\\Project\\work-logs\\src\\app\\api\\ai",
+    "E:\\Project\\work-logs\\src"
   ],
   "scrollPositions": {},
   "cursorPositions": {},
   "layout": {
-    "sidebarWidth": 295,
-    "chatWidth": 452,
+    "sidebarWidth": 260,
+    "chatWidth": 497,
     "terminalVisible": false,
     "terminalLayout": "tabs",
     "workbench": {
@@ -31,7 +30,7 @@
           "direction": "horizontal",
           "first": "editor",
           "second": "agent",
-          "ratio": 0.6567390971323737
+          "ratio": 0.6808519269776876
         },
         "ratio": 0.2
       },
@@ -41,6 +40,6 @@
     },
     "editorVisible": true,
     "chatVisible": true,
-    "activeSidePanel": "explorer"
+    "activeSidePanel": "git"
   }
 }
