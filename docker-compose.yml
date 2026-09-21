@@ -1,0 +1,28 @@
+services:
+  devlog:
+    build:
+      context: .
+      # 构建时 DATABASE_URL 仅用于 prisma client 生成类型校验，可指向任意占位串
+      args:
+        DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+    image: devlog:latest
+    container_name: devlog
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # 远程 PostgreSQL（DevLog 库）
+      DATABASE_URL: ${DATABASE_URL}
+      # GitHub OAuth（回调地址填 http://<你的服务器IP或域名>:3000/api/auth/callback）
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+      # 会话签名密钥（openssl rand -hex 32 生成）
+      AUTH_SECRET: ${AUTH_SECRET}
+    networks:
+      - default
+
+# 接入公共网络（固定，所有项目都一样）
+networks:
+  default:
+    external: true
+    name: base-service_base-net
