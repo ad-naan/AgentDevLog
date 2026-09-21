@@ -10,6 +10,7 @@ export default function Settings() {
   const router = useRouter()
   const [repoInput, setRepoInput] = useState('')
   const [token, setToken] = useState('')
+const [ghUser, setGhUser] = useState('')
   const [name, setName] = useState('')
   const [title, setTitle] = useState('')
   const [llmBaseUrl, setLlmBaseUrl] = useState('')
@@ -36,6 +37,7 @@ export default function Settings() {
   const doSync = async () => {
     setBusy(true); setStatus(null)
     if (token.trim()) await patch({ githubToken: token.trim() })
+    if (ghUser.trim()) await patch({ githubUser: ghUser.trim().replace(/^@/, '') })
     const r = await fetch('/api/sync', { method: 'POST' })
     const j = await r.json() as { fetched: number; errors: string[] }
     await refresh()
@@ -163,8 +165,19 @@ export default function Settings() {
       <section className="bg-card border border-line rounded-2xl p-5">
         <h2 className="text-[15px] font-bold mb-1">GitHub 同步</h2>
         <p className="text-[12px] text-dim mb-4">服务端从真实 GitHub API 拉取关注仓库的 Push / PR / Issue 事件，以事件 id 去重后写入 PostgreSQL。公共仓库无需 token；私有仓库或触发限流时填写 Personal Access Token。</p>
-        <input value={token} onChange={(e) => setToken(e.target.value)} type="password" placeholder="ghp_...（可选）"
-          className="w-full bg-inset border border-line rounded-lg px-3 py-2 text-[13px] font-mono outline-none focus:border-line2" />
+        <div className="grid grid-cols-2 gap-4">
+          <label className="block">
+            <span className="text-[12px] text-dim">GitHub 用户名（只同步我的活动）</span>
+            <input value={ghUser} onChange={(e) => setGhUser(e.target.value)}
+              placeholder={s.settings.githubUser || '例如：ad-naan'}
+              className="mt-1.5 w-full bg-inset border border-line rounded-lg px-3 py-2 text-[13px] font-mono outline-none focus:border-line2" />
+          </label>
+          <label className="block">
+            <span className="text-[12px] text-dim">Personal Access Token</span>
+            <input value={token} onChange={(e) => setToken(e.target.value)} type="password" placeholder="ghp_...（可选）"
+              className="mt-1.5 w-full bg-inset border border-line rounded-lg px-3 py-2 text-[13px] font-mono outline-none focus:border-line2" />
+          </label>
+        </div>
         <div className="mt-4 flex items-center gap-3">
           <button onClick={doSync} disabled={busy}
             className="px-4 py-2 rounded-lg bg-accent text-[#04110b] text-[13px] font-semibold disabled:opacity-50">

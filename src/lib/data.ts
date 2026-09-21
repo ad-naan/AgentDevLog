@@ -40,6 +40,7 @@ export async function loadState(): Promise<AppState> {
       defaultScope: settings.defaultScope as 'work' | 'life',
       watchedRepos: settings.watchedRepos,
       githubToken: settings.githubToken,
+      githubUser: settings.githubUser,
       languages: settings.languages as [string, number, number][],
       llmBaseUrl: settings.llmBaseUrl,
       llmModel: settings.llmModel,

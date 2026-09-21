@@ -247,6 +247,79 @@ ${basis.openTodos.slice(0, 15).map((t) => `- ${t}`).join('\n') || '（无）'}`,
     { temperature: 0.5 },
   )
 }
+export interface WeeklyProjectInput {
+  name: string
+  commits: number
+  prs: number
+  samples: string[] // 代表性 commit/PR 标题
+}
+
+export async function agentWeeklyReport(
+  userId: number,
+  scope: 'work' | 'life',
+  basis: {
+    range: [string, string] // [周一, 周日] YYYY-MM-DD
+    projects: WeeklyProjectInput[]
+    logs: { title: string; content: string }[]
+    closedTodos: string[]
+    openTodos: string[]
+  },
+): Promise<ReportResult> {
+  const cfg = await requireLLMConfig(userId)
+  const [from, to] = basis.range
+  return chatJSON<ReportResult>(
+    cfg,
+    [
+      {
+        role: 'system',
+        content:
+          '你是项目周报助手。基于真实记录按项目生成周报。要求：① 按项目分组；② 每个项目内部按「新增功能 / 优化 / 修复」归纳，把多条 commit 综合成一句完整的工作描述（如「新增收藏指标强制刷新功能，优化指标计算逻辑统一，修复副标题比例失衡等 3 个 bug」），禁止逐条罗列 commit 标题；③ 内容可量化（功能数、bug 数、commit 数）；④ 不虚构事实。只输出 JSON。',
+      },
+      {
+        role: 'user',
+        content: `基于以下真实记录生成 ${from} ~ ${to} 的${scope === 'work' ? '工作' : '生活'}周报，按以下三部分组织：
+
+格式：{"summary":"一句话总结(50字内，含总量数字)","sections":{
+"done":["本周重点项目完成进度·按项目一条，格式「项目名：整体阶段判断（已完成/进行中·开发阶段），共 N 次 commit。新增：完成 X 功能；优化：改进了 Y 模块的 Z；修复：解决 A、B 等 K 个 bug」。把同类 commit 合并归纳成工作成果，按 新增功能→优化→修复 的顺序写，禁止罗列 commit 标题原文"],
+"doing":["未完成或未启动的项目及原因，如「项目C：未启动（人力未到位）」"],
+"risks":["问题与风险：遇到的问题、风险预警、建议解决方案；并附「亮点：…」「不足：…」各一条"],
+"plans":["下周工作计划：计划工作内容 + 预期产出目标，格式如「完成 X 功能开发，预期产出：可联调版本 + 5 个单测」"]}}
+done 必须按项目分组、标注阶段（已完成/进行中·阶段/未完成），每条包含具体数字；每类 2-6 条，只依据记录，不要编造。
+
+各项目量化统计：
+${basis.projects.map((p) => `- ${p.name}：${p.commits} 次 commit，${p.prs} 个 PR`).join('\n') || '（无）'}
+
+代表性提交/PR：
+${basis.projects.flatMap((p) => p.samples.slice(0, 6).map((s) => `- [${p.name}] ${s}`)).slice(0, 30).join('\n') || '（无）'}
+
+本周日志（${basis.logs.length} 篇）：
+${basis.logs.map((l) => `- ${l.title}: ${l.content.slice(0, 200)}`).join('\n') || '（无）'}
+
+本周完成的待办（${basis.closedTodos.length} 个）：
+${basis.closedTodos.slice(0, 15).map((t) => `- ${t}`).join('\n') || '（无）'}
+
+未完成待办：
+${basis.openTodos.slice(0, 15).map((t) => `- ${t}`).join('\n') || '（无）'}`,
+      },
+    ],
+    (p) => {
+      const o = p as { summary?: unknown; sections?: Record<string, unknown> }
+      if (typeof o.summary !== 'string' || !o.summary || !o.sections) return null
+      const done = asStrings(o.sections.done, 8)
+      if (!done) return null
+      return {
+        summary: o.summary.slice(0, 160),
+        sections: {
+          done,
+          doing: asStrings(o.sections.doing, 6) || [],
+          risks: asStrings(o.sections.risks, 5) || [],
+          plans: asStrings(o.sections.plans, 6) || [],
+        },
+      }
+    },
+    { temperature: 0.4 },
+  )
+}
 
 // ─── ③ 快速捕获：自然语言 → 结构化记录（todo / log）并落库 ───
 

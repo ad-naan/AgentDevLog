@@ -21,6 +21,7 @@ export async function PATCH(req: Request) {
   if (b.defaultScope === 'work' || b.defaultScope === 'life') data.defaultScope = b.defaultScope
   if (Array.isArray(b.watchedRepos)) data.watchedRepos = b.watchedRepos.map(String)
   if (typeof b.githubToken === 'string') data.githubToken = b.githubToken
+  if (typeof b.githubUser === 'string') data.githubUser = b.githubUser.trim().replace(/^@/, '')
   for (const k of ['llmBaseUrl', 'llmModel', 'llmApiKey'] as const) {
     if (typeof b[k] === 'string') data[k] = (b[k] as string).trim()
   }

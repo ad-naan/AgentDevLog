@@ -48,7 +48,15 @@ export interface ReportDTO {
   summary: string
   sections: { done: string[]; doing: string[]; risks: string[]; plans: string[] }
   generatedAt: string
-  basis: { logs: number; commits: number; prs: number }
+  basis: {
+    logs: number
+    commits: number
+    prs: number
+    kind?: 'day' | 'week'
+    range?: [string, string]
+    todos?: number
+    projects?: { name: string; commits: number; prs: number }[]
+  }
 }
 
 export interface BreakdownDTO {
@@ -67,6 +75,7 @@ export interface AppState {
     defaultScope: Scope
     watchedRepos: string[]
     githubToken: string
+    githubUser: string
     languages: [string, number, number][]
     llmBaseUrl: string
     llmModel: string

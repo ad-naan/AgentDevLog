@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DevLog — 个人工作日志与任务管理
 
-## Getting Started
+一个面向开发者的个人工作台：日志、待办、任务拆解、周报、GitHub 动态与 AI 助手，全部数据存储在 PostgreSQL 中。
 
-First, run the development server:
+## 技术栈
+
+- **Next.js 16**（App Router）+ **React 19** + **TypeScript**
+- **Tailwind CSS 4**
+- **Prisma 6** + **PostgreSQL**
+
+## 功能
+
+- **Dashboard**：快速记录（AI 自动识别待办/日志）、热力图、趋势图
+- **Logs**：按日期的日志编辑器，支持 Markdown 工具栏、标签、心情
+- **Todos**：待办管理，支持截止时间
+- **Breakdown**：需求/功能拆解为可勾选的子任务
+- **Reports**：周报生成与查看
+- **Analytics**：数据分析
+- **GitHub 同步**：关注的仓库动态（Settings 中配置 token 与仓库）
+- **AI 助手**：可配置任意 OpenAI 兼容 LLM（BaseUrl / Model / API Key），支持日报生成、待办转换等指令
+
+## 快速开始
+
+```bash
+npm install
+```
+
+配置环境变量（根目录 `.env`，已被 gitignore）：
+
+```env
+DATABASE_URL="postgresql://user:password@host:5432/devlog"
+```
+
+同步数据库结构：
+
+```bash
+npx prisma db push
+```
+
+> 注意：若数据库用户无 CREATEDB 权限（无法创建影子库），请使用 `db push` 而非 `migrate dev`。
+
+启动开发服务器：
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+打开 http://localhost:3000 。所有页面数据来自 `/api/state`，首次使用无种子数据，直接在页面上录入即可。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 目录结构
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+├── lib/          # prisma.ts / data.ts / github.ts / llm.ts / agent.ts / types.ts
+├── app/
+│   ├── api/      # REST 接口：logs / todos / breakdowns / reports / settings /
+│   │             # state / sync / reset / quick / insight / ai / llm
+│   └── (pages)/  # dashboard / logs / breakdown / todos / reports / analytics / settings
+└── components/   # Shell / StoreProvider / CommandPalette / Assistant / Toast / pages/*
+```

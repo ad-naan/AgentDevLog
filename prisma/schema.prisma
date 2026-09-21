@@ -29,6 +29,7 @@ model Settings {
   defaultScope  String  @default("work")
   watchedRepos  String[] @default([])
   githubToken   String  @default("")
+  githubUser    String  @default("")
   languages     Json    @default("[]")
   llmBaseUrl    String  @default("")
   llmModel      String  @default("")

@@ -24,13 +24,13 @@ export default function Reports() {
     })
     res.ok ? toast('报告已确认归档', 'success') : toast(await apiError(res), 'error')
   }
-  const regenerate = async () => {
+  const generate = async (period: 'day' | 'week') => {
     if (busy) return
     setBusy(true)
     try {
       const res = await fetch('/api/reports/generate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scope }),
+        body: JSON.stringify({ scope, period }),
       })
       if (!res.ok) {
         toast(await apiError(res), 'error')
@@ -38,12 +38,13 @@ export default function Reports() {
       }
       const j = await res.json() as { id: number }
       setSel(j.id)
-      toast('✦ AI 已基于真实日志与活动生成今日报告', 'success')
+      toast(period === 'week' ? '✦ AI 已生成上周周报（按项目量化）' : '✦ AI 已基于真实日志与活动生成今日报告', 'success')
     } finally {
       setBusy(false)
       await new Promise((ok) => setTimeout(ok, 350)) // 让骨架屏动画完整呈现
     }
   }
+  const regenerate = () => generate((r?.basis.kind as 'day' | 'week' | undefined) ?? 'day')
   const plansToTodos = async () => {
     if (!r || adopting) return
     setAdopting(true)
@@ -61,19 +62,33 @@ export default function Reports() {
   if (!r) return (
     <div className="flex flex-col items-center justify-center h-full gap-4">
       <p className="text-faint text-[13px]">还没有报告。</p>
-      <button onClick={regenerate} disabled={busy}
-        className={`btn-press px-4 py-2 rounded-lg text-white text-[13px] font-semibold disabled:opacity-60 ${busy ? 'ai-btn-busy' : 'bg-gradient-to-r from-[#6D5EF0] to-[#4F7CF0]'}`}>
-        {busy ? '✦ AI 生成中…' : '✦ 生成今日报告'}
-      </button>
+      <div className="flex items-center gap-3">
+        <button onClick={() => generate('day')} disabled={busy}
+          className={`btn-press px-4 py-2 rounded-lg text-white text-[13px] font-semibold disabled:opacity-60 ${busy ? 'ai-btn-busy' : 'bg-gradient-to-r from-[#6D5EF0] to-[#4F7CF0]'}`}>
+          {busy ? '✦ AI 生成中…' : '✦ 生成今日报告'}
+        </button>
+        <button onClick={() => generate('week')} disabled={busy}
+          className="btn-press px-4 py-2 rounded-lg border border-line2 text-[13px] font-medium hover:bg-[rgba(255,255,255,.04)] disabled:opacity-60">
+          ✦ 生成上周周报
+        </button>
+      </div>
     </div>
   )
 
-  const secs: [string, typeof IconCheck, string, string[]][] = [
-    ['今日完成', IconCheck, 'text-accent bg-[rgba(61,220,151,.15)]', r.sections.done],
-    ['进行中', IconClock, 'text-blue bg-[rgba(88,166,255,.15)]', r.sections.doing],
-    ['风险与阻塞', IconAlert, 'text-red bg-[rgba(248,81,73,.15)]', r.sections.risks],
-    ['明日计划', IconCalendar, 'text-purple bg-[rgba(188,140,255,.15)]', r.sections.plans],
-  ]
+  const isWeek = (r.basis.kind as string) === 'week'
+  const secs: [string, typeof IconCheck, string, string[]][] = isWeek
+    ? [
+        ['本周重点项目进度', IconCheck, 'text-accent bg-[rgba(61,220,151,.15)]', r.sections.done],
+        ['未完成项目', IconClock, 'text-blue bg-[rgba(88,166,255,.15)]', r.sections.doing],
+        ['问题与风险', IconAlert, 'text-red bg-[rgba(248,81,73,.15)]', r.sections.risks],
+        ['下周计划（含预期产出）', IconCalendar, 'text-purple bg-[rgba(188,140,255,.15)]', r.sections.plans],
+      ]
+    : [
+        ['今日完成', IconCheck, 'text-accent bg-[rgba(61,220,151,.15)]', r.sections.done],
+        ['进行中', IconClock, 'text-blue bg-[rgba(88,166,255,.15)]', r.sections.doing],
+        ['风险与阻塞', IconAlert, 'text-red bg-[rgba(248,81,73,.15)]', r.sections.risks],
+        ['明日计划', IconCalendar, 'text-purple bg-[rgba(188,140,255,.15)]', r.sections.plans],
+      ]
 
   return (
     <div className="grid grid-cols-[300px_1fr] gap-4 h-full min-h-0">
