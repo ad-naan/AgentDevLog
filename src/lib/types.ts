@@ -70,7 +70,7 @@ export interface BreakdownDTO {
 }
 
 export interface AppState {
-  user: { name: string; title: string }
+  user: { name: string; title: string; login?: string | null; avatar?: string | null }
   settings: {
     defaultScope: Scope
     watchedRepos: string[]

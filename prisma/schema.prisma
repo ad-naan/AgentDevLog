@@ -12,6 +12,9 @@ model User {
   name      String   @default("Richard Davis")
   title     String   @default("高级全栈工程师")
   email     String?  @unique
+  githubId  String?  @unique // GitHub 数字 id（字符串存储），OAuth 登录唯一标识
+  login     String?  // GitHub 用户名（@handle）
+  avatar    String?  // GitHub 头像 URL
   createdAt DateTime @default(now())
 
   logs       Log[]

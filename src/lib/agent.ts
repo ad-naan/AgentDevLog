@@ -340,7 +340,8 @@ ${basis.openTodos.slice(0, 25).map((t) => `- ${t}`).join('\n') || '（无）'}`,
         },
       }
     },
-    { temperature: 0.4 },
+    // 周报 prompt 较长、生成内容多，放宽超时到 180s，避免默认 60s 中断导致 502
+    { temperature: 0.4, timeoutMs: 180_000 },
   )
 }
 

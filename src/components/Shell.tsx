@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import {
   IconDashboard, IconLog, IconReport, IconCheck, IconSpark, IconChart,
-  IconGear, IconSearch, IconBriefcase, IconHome, IconRefresh, IconTerminal, Logo,
+  IconGear, IconSearch, IconBriefcase, IconHome, IconTerminal, Logo,
 } from './icons'
 import { useStore } from './StoreProvider'
 import Assistant from './Assistant'
@@ -41,6 +41,10 @@ function ScopeSwitch() {
 function Sidebar() {
   const path = usePathname()
   const { s } = useStore()
+  const logout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    window.location.href = '/login'
+  }
   return (
     <aside className="w-[216px] shrink-0 bg-[#0c1017] flex flex-col p-3 relative">
       {/* 背景呼吸光晕 */}
@@ -77,16 +81,30 @@ function Sidebar() {
       </nav>
       <div className="mt-auto pt-3">
         <div className="flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl bg-[#11161f] border border-line transition-colors hover:border-line2">
-          <div className="relative">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#4A8CF7] to-[#6D5AE6] flex items-center justify-center text-[11px] font-bold text-white">
-              {(s?.user.name || 'U').trim()[0]?.toUpperCase()}
-            </div>
+          <div className="relative shrink-0">
+            {s?.user.avatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={s.user.avatar} alt="" className="w-8 h-8 rounded-full object-cover" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#4A8CF7] to-[#6D5AE6] flex items-center justify-center text-[11px] font-bold text-white">
+                {(s?.user.name || 'U').trim()[0]?.toUpperCase()}
+              </div>
+            )}
             <span aria-hidden className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-accent border-2 border-[#11161f] shadow-[0_0_8px_rgba(61,220,151,.7)]" />
           </div>
-          <div className="min-w-0">
-            <b className="block text-[12px] leading-tight">{s?.user.name ?? '…'}</b>
-            <span className="block text-[10px] text-faint truncate">{s?.user.title}</span>
+          <div className="min-w-0 flex-1">
+            <b className="block text-[12px] leading-tight truncate">{s?.user.name ?? '…'}</b>
+            <span className="block text-[10px] text-faint truncate">
+              {s?.user.login ? `@${s.user.login}` : s?.user.title}
+            </span>
           </div>
+          <button onClick={logout} title="退出登录"
+            className="btn-press shrink-0 text-faint hover:text-red transition-colors p-1">
+            <svg viewBox="0 0 16 16" width={15} height={15} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M6 14H3.5A1.5 1.5 0 0 1 2 12.5v-9A1.5 1.5 0 0 1 3.5 2H6" />
+              <path d="M10.5 11 14 8l-3.5-3M14 8H6" />
+            </svg>
+          </button>
         </div>
       </div>
     </aside>

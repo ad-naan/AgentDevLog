@@ -1,18 +1,20 @@
 import { prisma } from './prisma'
 import type { AppState } from './types'
-import { today } from './types'
+import { getSessionUserId, AuthError } from './auth'
 
-const USER_ID = 1
-
-/** 确保默认用户与设置存在，返回 userId（并发安全） */
+/**
+ * 解析当前登录用户 id，并确保其设置行存在（首次登录已在 OAuth 回调建好）。
+ * 未登录时抛 AuthError，由 http.ts 统一转换为 401。
+ */
 export async function ensureUser() {
-  if (!(await prisma.user.findUnique({ where: { id: USER_ID } }))) {
-    await prisma.user.create({ data: { id: USER_ID } }).catch(() => null)
+  const userId = await getSessionUserId()
+  // 会话可能指向已被清理的旧用户（如单用户合并后），此时视为未登录，触发重新登录
+  const user = await prisma.user.findUnique({ where: { id: userId } })
+  if (!user) throw new AuthError()
+  if (!(await prisma.settings.findUnique({ where: { userId } }))) {
+    await prisma.settings.create({ data: { userId } }).catch(() => null)
   }
-  if (!(await prisma.settings.findUnique({ where: { userId: USER_ID } }))) {
-    await prisma.settings.create({ data: { userId: USER_ID } }).catch(() => null)
-  }
-  return USER_ID
+  return userId
 }
 
 /** 序列化：DB 行 → 客户端 DTO，组装完整应用状态 */
@@ -35,7 +37,7 @@ export async function loadState(): Promise<AppState> {
   }
 
   return {
-    user: { name: user.name, title: user.title },
+    user: { name: user.name, title: user.title, login: user.login, avatar: user.avatar },
     settings: {
       defaultScope: settings.defaultScope as 'work' | 'life',
       watchedRepos: settings.watchedRepos,

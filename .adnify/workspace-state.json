@@ -1,14 +1,19 @@
 {
   "openFiles": [
     "D:/Project/mine/agent-workspace/README.md",
-    "D:/Project/mine/agent-workspace/src/lib/agent.ts"
+    "D:/Project/mine/agent-workspace/src/lib/agent.ts",
+    "D:/Project/mine/agent-workspace/package.json",
+    "D:/Project/mine/agent-workspace/src/components/Shell.tsx",
+    "D:/Project/mine/agent-workspace/src/lib/data.ts",
+    "D:/Project/mine/agent-workspace/.env",
+    "D:/Project/mine/agent-workspace/prisma/inspect.mjs"
   ],
-  "activeFile": "D:/Project/mine/agent-workspace/src/lib/agent.ts",
+  "activeFile": null,
   "expandedFolders": [
     "D:\\Project\\mine\\agent-workspace",
     "D:/Project/mine/agent-workspace/scripts",
     "D:\\Project\\mine\\agent-workspace\\src\\lib",
-    "D:\\Project\\mine\\agent-workspace\\src\\app"
+    "D:\\Project\\mine\\agent-workspace\\prisma"
   ],
   "scrollPositions": {},
   "cursorPositions": {},

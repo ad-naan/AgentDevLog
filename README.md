@@ -10,6 +10,7 @@
 
 ## 功能
 
+- **GitHub 登录**：通过 GitHub OAuth 登录，会话由 HMAC 签名 Cookie 维持，无需第三方鉴权库
 - **Dashboard**：快速记录（AI 自动识别待办/日志）、热力图、趋势图
 - **Logs**：按日期的日志编辑器，支持 Markdown 工具栏、标签、心情
 - **Todos**：待办管理，支持截止时间
@@ -29,7 +30,18 @@ npm install
 
 ```env
 DATABASE_URL="postgresql://user:password@host:5432/devlog"
+
+# GitHub OAuth 登录（在 https://github.com/settings/developers 创建 OAuth App）
+GITHUB_CLIENT_ID="your_client_id"
+GITHUB_CLIENT_SECRET="your_client_secret"
+# 会话签名密钥（至少 16 位，建议 openssl rand -hex 32 生成）
+AUTH_SECRET="a_long_random_secret"
+# 可选：显式指定站点地址（用于拼接 OAuth 回调，默认取请求 origin）
+# APP_URL="http://localhost:3000"
 ```
+
+> 创建 GitHub OAuth App 时，**Authorization callback URL** 填 `http://localhost:3000/api/auth/callback`
+> （生产环境替换为你的域名）。登录会同时把 GitHub token 写入用户设置，直接打通仓库同步。
 
 同步数据库结构：
 
@@ -53,8 +65,10 @@ npm run dev
 src/
 ├── lib/          # prisma.ts / data.ts / github.ts / llm.ts / agent.ts / types.ts
 ├── app/
-│   ├── api/      # REST 接口：logs / todos / breakdowns / reports / settings /
-│   │             # state / sync / reset / quick / insight / ai / llm
-│   └── (pages)/  # dashboard / logs / breakdown / todos / reports / analytics / settings
+│   ├── api/      # REST 接口：auth/* / logs / todos / breakdowns / reports /
+│   │             # settings / state / sync / reset / quick / insight / ai / llm
+│   ├── (main)/   # 已登录区（含 Shell 布局）：dashboard / logs / breakdown / todos / reports / analytics / settings
+│   └── login/    # 登录页（GitHub OAuth）
+├── middleware.ts # 会话网关：未登录页面跳转 /login，API 返回 401
 └── components/   # Shell / StoreProvider / CommandPalette / Assistant / Toast / pages/*
 ```

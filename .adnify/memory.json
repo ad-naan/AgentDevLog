@@ -2,6 +2,12 @@
   "version": 1,
   "items": [
     {
+      "id": "480488bf-3c37-4966-9310-89aa272e5b8b",
+      "content": "work-logs (agent-workspace) 项目已接入 GitHub OAuth 登录：无第三方鉴权库，自研 HMAC 签名会话 Cookie。关键实现：src/lib/auth.ts（会话签发/校验，用 crypto + AUTH_SECRET，仅服务端）、src/lib/auth-shared.ts（Edge 安全的 Cookie 名常量，供 middleware 引用，避免把 Node crypto 带进 Edge Runtime）、src/middleware.ts（会话网关：未登录页面跳 /login、API 返 401，放行 /api/auth/*）。OAuth 路由在 src/app/api/auth/{github,callback,logout,me}。ensureUser() 已从硬编码 USER_ID=1 改为 getSessionUserId() 读会话；http.ts 的 llmErrorResponse 把 AuthError 映射为 401。已登录页面移入 src/app/(main)/ 路由组（含 StoreProvider+Toast+Shell 布局），根 layout 仅保留 html/body；登录页 src/app/login。User 表新增 githubId(unique)/login/avatar 字段。登录回调会把 GitHub token 写入 Settings 打通仓库同步。需在 .env 配置 GITHUB_CLIENT_ID/GITHUB_CLIENT_SECRET/AUTH_SECRET，OAuth App 回调填 /api/auth/callback。",
+      "createdAt": 1789984487462,
+      "enabled": true
+    },
+    {
       "id": "cf5b603f-464e-428d-b180-6e08ce98aa4c",
       "content": "work-logs 项目已从 Vite+React+localStorage 迁移为 Next.js 16 (App Router, web/ 提升至仓库根目录) + Prisma 6 + 远程 PostgreSQL (170.106.75.5:5432, 库 devlog, 用户 devlog)。连接串在根目录 .env（已被 gitignore）。注意：该 PG 用户无 CREATEDB 权限，Prisma 需用 `db push` 而不是 `migrate dev`（影子库限制）。目录分层：src/lib(prisma.ts/data.ts/github.ts/types.ts) → src/app/api/*(REST) → src/components(StoreProvider/Shell/pages/*)。所有页面数据来自 /api/state，无演示种子数据。",
       "createdAt": 1789919191899,

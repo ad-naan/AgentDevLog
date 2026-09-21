@@ -5,6 +5,9 @@ import { today } from '@/lib/types'
 import { agentReport, agentWeeklyReport, type WeeklyProjectInput } from '@/lib/agent'
 import { llmErrorResponse } from '@/lib/http'
 
+// 周报生成需调用 LLM 且 prompt 较长，放宽路由最大执行时间（本地/自托管有效）
+export const maxDuration = 200
+
 /** 上周一 ~ 周日（本地时区，ISO 日期字符串） */
 function lastWeekRange(): [string, string, Date, Date] {
   const now = new Date()

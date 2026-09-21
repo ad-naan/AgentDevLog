@@ -21,6 +21,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const refresh = useCallback(async () => {
     const r = await fetch('/api/state', { cache: 'no-store' })
+    if (r.status === 401) {
+      // 会话失效：回登录页
+      window.location.href = '/login'
+      return
+    }
     if (r.ok) setS(await r.json())
   }, [])
 
