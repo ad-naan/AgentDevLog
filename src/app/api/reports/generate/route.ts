@@ -21,6 +21,12 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}))
   const scope = body.scope === 'life' ? 'life' : 'work'
   const period = body.period === 'week' ? 'week' : 'day'
+  // 手动补充：git 无法记录的线下/本地工作，逐行拆分
+  const manualNotes: string[] = typeof body.manualNotes === 'string'
+    ? body.manualNotes.split('\n').map((x: string) => x.trim()).filter(Boolean).slice(0, 30)
+    : Array.isArray(body.manualNotes)
+      ? body.manualNotes.map((x: unknown) => String(x).trim()).filter(Boolean).slice(0, 30)
+      : []
   const t = today()
 
   try {
@@ -47,7 +53,7 @@ export async function POST(req: Request) {
         if (!p) byProject.set(key, (p = { name: key, commits: 0, prs: 0, samples: [] }))
         if (a.type === 'commit') {
           p.commits++
-          if (p.samples.length < 10) p.samples.push(a.title)
+          if (p.samples.length < 20) p.samples.push(a.title)
         } else if (a.type === 'pr') {
           p.prs++
           p.samples.push(a.title)
@@ -65,6 +71,7 @@ export async function POST(req: Request) {
         logs: weekLogs.map((l) => ({ title: l.title, content: l.content })),
         closedTodos,
         openTodos,
+        manualNotes,
       })
       const basis = {
         kind: 'week' as const,

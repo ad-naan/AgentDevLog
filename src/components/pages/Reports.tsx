@@ -11,6 +11,8 @@ export default function Reports() {
   const [sel, setSel] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const [adopting, setAdopting] = useState(false)
+  const [manualNotes, setManualNotes] = useState('')
+  const [showManual, setShowManual] = useState(false)
   if (!s) return <p className="text-faint text-[13px]">加载中…</p>
 
   const reports = s.reports
@@ -30,7 +32,7 @@ export default function Reports() {
     try {
       const res = await fetch('/api/reports/generate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scope, period }),
+        body: JSON.stringify({ scope, period, manualNotes: period === 'week' ? manualNotes : '' }),
       })
       if (!res.ok) {
         toast(await apiError(res), 'error')
@@ -59,9 +61,24 @@ export default function Reports() {
     toast(`明日计划已转为 ${titles.length} 个待办`, 'success')
   }
 
+  const manualPanel = (
+    <div className="w-full max-w-md">
+      <button onClick={() => setShowManual((v) => !v)}
+        className="btn-press text-[11.5px] text-faint hover:text-dim flex items-center gap-1">
+        {showManual ? '▾' : '▸'} 补充工作（git 未记录的线下/本地工作，用于周报）
+      </button>
+      {showManual && (
+        <textarea value={manualNotes} onChange={(e) => setManualNotes(e.target.value)}
+          rows={4} placeholder={'每行一条，如：\n- 主导支付模块需求评审，确定 3 个接口方案\n- 排查线上订单超时问题并给出临时方案\n- 输出前端性能优化设计文档'}
+          className="mt-2 w-full rounded-lg bg-[rgba(255,255,255,.03)] border border-line2 px-3 py-2 text-[12px] text-dim leading-relaxed outline-none focus:border-[#4F7CF0] resize-y" />
+      )}
+    </div>
+  )
+
   if (!r) return (
     <div className="flex flex-col items-center justify-center h-full gap-4">
       <p className="text-faint text-[13px]">还没有报告。</p>
+      {manualPanel}
       <div className="flex items-center gap-3">
         <button onClick={() => generate('day')} disabled={busy}
           className={`btn-press px-4 py-2 rounded-lg text-white text-[13px] font-semibold disabled:opacity-60 ${busy ? 'ai-btn-busy' : 'bg-gradient-to-r from-[#6D5EF0] to-[#4F7CF0]'}`}>
@@ -123,8 +140,13 @@ export default function Reports() {
             )
           })}
         </div>
-        <div className="border-t border-line px-4 py-3">
-          <div className="text-[11px] text-faint mt-1">共 {reports.length} 篇报告</div>
+        <div className="border-t border-line px-4 py-3 flex flex-col gap-2">
+          {manualPanel}
+          <button onClick={() => generate('week')} disabled={busy}
+            className="btn-press w-full py-1.5 rounded-lg border border-line2 text-[12px] font-medium hover:bg-[rgba(255,255,255,.04)] disabled:opacity-60">
+            ✦ 生成上周周报（含补充）
+          </button>
+          <div className="text-[11px] text-faint">共 {reports.length} 篇报告</div>
         </div>
       </div>
 

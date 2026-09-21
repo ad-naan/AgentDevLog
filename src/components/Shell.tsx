@@ -42,7 +42,7 @@ function Sidebar() {
   const path = usePathname()
   const { s } = useStore()
   return (
-    <aside className="w-[216px] shrink-0 bg-[#0c1017] border-r border-line flex flex-col p-3 relative">
+    <aside className="w-[216px] shrink-0 bg-[#0c1017] flex flex-col p-3 relative">
       {/* 背景呼吸光晕 */}
       <div aria-hidden className="pointer-events-none absolute -top-24 -left-16 w-64 h-64 rounded-full opacity-[.07] sidebar-glow" />
       <Link href="/" className="flex items-center gap-2.5 px-1 py-2 mb-1 group">
@@ -60,11 +60,10 @@ function Sidebar() {
             <Link key={n.href} href={n.href}
               className={`group relative flex items-center gap-3 pl-3 pr-2.5 py-2.5 rounded-lg text-[13.5px] w-full text-left transition-all duration-200
                 ${on ? 'bg-[rgba(61,220,151,.12)] text-txt font-medium' : 'text-dim hover:bg-[rgba(255,255,255,.04)] hover:text-txt'}`}>
-              {on && <span aria-hidden className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full bg-accent shadow-[0_0_10px_rgba(61,220,151,.8)] nav-dot" />}
               <span className={`font-mono text-[9.5px] w-3 shrink-0 transition-colors ${on ? 'text-accent' : 'text-faint group-hover:text-dim'}`}>{String(i + 1).padStart(2, '0')}</span>
               <n.icon width={16} height={16} className={`shrink-0 transition-all duration-300 ${on ? 'text-accent group-hover:scale-110' : 'text-[#6b7686] group-hover:text-dim group-hover:scale-105'}`} />
-              <span className="flex-1">{n.label}</span>
-              <span className={`font-mono text-[9px] transition-opacity ${on ? 'text-faint opacity-100' : 'opacity-0 group-hover:opacity-70'}`}>{n.path}</span>
+              <span className="flex-1 whitespace-nowrap">{n.label}</span>
+              <span className={`absolute right-2.5 font-mono text-[9px] transition-opacity pointer-events-none ${on ? 'text-faint opacity-100' : 'opacity-0 group-hover:opacity-70'}`}>{n.path}</span>
             </Link>
           )
         })}

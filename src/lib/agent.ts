@@ -263,57 +263,80 @@ export async function agentWeeklyReport(
     logs: { title: string; content: string }[]
     closedTodos: string[]
     openTodos: string[]
+    manualNotes?: string[] // 手动补充：不在 git / 无法用 git 衡量的工作
   },
 ): Promise<ReportResult> {
   const cfg = await requireLLMConfig(userId)
   const [from, to] = basis.range
+  const manual = (basis.manualNotes || []).map((x) => x.trim()).filter(Boolean)
   return chatJSON<ReportResult>(
     cfg,
     [
       {
         role: 'system',
         content:
-          '你是项目周报助手。基于真实记录按项目生成周报。要求：① 按项目分组；② 每个项目内部按「新增功能 / 优化 / 修复」归纳，把多条 commit 综合成一句完整的工作描述（如「新增收藏指标强制刷新功能，优化指标计算逻辑统一，修复副标题比例失衡等 3 个 bug」），禁止逐条罗列 commit 标题；③ 内容可量化（功能数、bug 数、commit 数）；④ 不虚构事实。只输出 JSON。',
+          '你是资深项目周报助手，为「可能不懂技术细节的上级/产品/协作方」撰写通俗易懂、有信息量、可量化的周报。硬性要求：' +
+          '① 用大白话讲清楚「做了什么、为了解决什么问题、带来什么价值或效果」，让非技术读者也能看懂；' +
+          '② 严禁照搬 commit 里的英文变量名、函数名、字段名、内部代号（如 fallback_generated、identity_key、remote_key、zero-create replay 等），必须翻译成业务语言，如「素材自动兜底」「人物身份识别」「远程存储配置」；确需保留的专有名词要用一句话解释它是什么；' +
+          '③ 严格按项目分组，逐项目展开；每个项目内部按「新增功能 / 优化 / 修复」归纳，把多条 commit 合并成完整、连贯的工作叙述，禁止逐条罗列 commit 标题、也禁止只写一句空话；' +
+          '④ 量化要落到业务价值而非仅堆 commit 数：优先写清楚影响范围、提升幅度、解决了多少问题（如「减少人工介入约 70%」「修复 4 类导致素材生成失败的问题」），commit/PR 数作为辅助佐证；' +
+          '⑤ 用户提供的「手动补充工作」是 git 无法记录的线下/本地工作（需求评审、设计、联调、排障、文档、沟通、调研等），必须与代码工作同等重视，在 done 中作为独立条目展开量化，不得遗漏；' +
+          '⑥ 绝不虚构：仅依据提供的记录，记录不足时如实标注「记录较少，仅…」而不是编造。只输出 JSON，不要多余解释。',
       },
       {
         role: 'user',
-        content: `基于以下真实记录生成 ${from} ~ ${to} 的${scope === 'work' ? '工作' : '生活'}周报，按以下三部分组织：
+        content: `基于以下真实记录，生成 ${from} ~ ${to} 的${scope === 'work' ? '工作' : '生活'}周报。要求：通俗易懂、分项目、分层次、按业务价值量化，非技术读者也能看懂。
 
-格式：{"summary":"一句话总结(50字内，含总量数字)","sections":{
-"done":["本周重点项目完成进度·按项目一条，格式「项目名：整体阶段判断（已完成/进行中·开发阶段），共 N 次 commit。新增：完成 X 功能；优化：改进了 Y 模块的 Z；修复：解决 A、B 等 K 个 bug」。把同类 commit 合并归纳成工作成果，按 新增功能→优化→修复 的顺序写，禁止罗列 commit 标题原文"],
-"doing":["未完成或未启动的项目及原因，如「项目C：未启动（人力未到位）」"],
-"risks":["问题与风险：遇到的问题、风险预警、建议解决方案；并附「亮点：…」「不足：…」各一条"],
-"plans":["下周工作计划：计划工作内容 + 预期产出目标，格式如「完成 X 功能开发，预期产出：可联调版本 + 5 个单测」"]}}
-done 必须按项目分组、标注阶段（已完成/进行中·阶段/未完成），每条包含具体数字；每类 2-6 条，只依据记录，不要编造。
+写作对照示例：
+- 反面（禁止）：「新增 fallback_generated 标志位至素材元数据，修复 identity_key 判定错误」
+- 正面（应这样写）：「新增素材自动兜底能力：缺素材时自动转入待补状态，减少人工盯梢约 70%；修复了 4 类导致素材生成失败的问题（如人物识别误判、占位文字错乱）」
 
-各项目量化统计：
+输出 JSON 格式：{"summary":"一句话总结(80字内，用大白话，须含本周项目数、关键成果与量化数字，如修复 bug 数/效率提升)","sections":{
+"done":[
+  "每个有活动的项目输出 1 条，充分展开，格式：「【项目名】阶段（已完成 / 进行中·具体阶段），本周提交 N 次、PR M 个。新增：<用业务语言说明新增了什么能力、给谁用、达到什么效果>；优化：<改进了什么、带来多少提升>；修复：<解决了哪类问题、共 K 个、影响是什么>。」缺某类则省略该类；所有英文术语必须译成业务语言并在必要时解释；禁止照抄 commit 标题。必须把「手动补充工作」每条也纳入 done 并展开量化"
+],
+"doing":[
+  "进行中未完成或未启动的项目/事项，逐条讲清当前状态、完成度、卡在哪、原因，用大白话，如「【项目C】还没启动，因人力未到位，计划下周开始」「【某模块】开发约 60%，还差联调和测试」"
+],
+"risks":[
+  "本周问题与风险，逐条写清「发生了什么 + 会造成什么影响 + 建议怎么办」，用非技术语言；末尾附「亮点：…」与「不足：…」各一条，点评整体表现"
+],
+"plans":[
+  "下周计划，逐条写「打算做什么 + 预期能交付什么/验收标准」，如「完成某功能开发，预期交付：可联调版本 + 覆盖 5 个场景的测试」，并标出优先级"
+]}}
+规则：done 每个项目一条且充分展开、含业务量化，并覆盖全部手动补充工作；doing 覆盖所有未完成项；risks 至少 2 条加亮点/不足；plans 至少 2 条且带预期产出。各类只依据下方记录，宁可写「记录较少」也不要编造。
+
+各项目量化统计（真实数据）：
 ${basis.projects.map((p) => `- ${p.name}：${p.commits} 次 commit，${p.prs} 个 PR`).join('\n') || '（无）'}
 
-代表性提交/PR：
-${basis.projects.flatMap((p) => p.samples.slice(0, 6).map((s) => `- [${p.name}] ${s}`)).slice(0, 30).join('\n') || '（无）'}
+代表性提交/PR（仅供理解本周做了什么，务必翻译成业务语言、不要照抄）：
+${basis.projects.flatMap((p) => p.samples.slice(0, 12).map((s) => `- [${p.name}] ${s}`)).slice(0, 60).join('\n') || '（无）'}
 
-本周日志（${basis.logs.length} 篇）：
-${basis.logs.map((l) => `- ${l.title}: ${l.content.slice(0, 200)}`).join('\n') || '（无）'}
+手动补充工作（git 无法记录的线下/本地工作，务必纳入并展开量化，${manual.length} 条）：
+${manual.slice(0, 30).map((t) => `- ${t}`).join('\n') || '（无）'}
+
+本周日志（${basis.logs.length} 篇，用于补充成果与细节）：
+${basis.logs.map((l) => `- ${l.title}: ${l.content.slice(0, 400)}`).join('\n') || '（无）'}
 
 本周完成的待办（${basis.closedTodos.length} 个）：
-${basis.closedTodos.slice(0, 15).map((t) => `- ${t}`).join('\n') || '（无）'}
+${basis.closedTodos.slice(0, 25).map((t) => `- ${t}`).join('\n') || '（无）'}
 
-未完成待办：
-${basis.openTodos.slice(0, 15).map((t) => `- ${t}`).join('\n') || '（无）'}`,
+未完成 / 未启动待办：
+${basis.openTodos.slice(0, 25).map((t) => `- ${t}`).join('\n') || '（无）'}`,
       },
     ],
     (p) => {
       const o = p as { summary?: unknown; sections?: Record<string, unknown> }
       if (typeof o.summary !== 'string' || !o.summary || !o.sections) return null
-      const done = asStrings(o.sections.done, 8)
+      const done = asStrings(o.sections.done, 16)
       if (!done) return null
       return {
-        summary: o.summary.slice(0, 160),
+        summary: o.summary.slice(0, 200),
         sections: {
           done,
-          doing: asStrings(o.sections.doing, 6) || [],
-          risks: asStrings(o.sections.risks, 5) || [],
-          plans: asStrings(o.sections.plans, 6) || [],
+          doing: asStrings(o.sections.doing, 12) || [],
+          risks: asStrings(o.sections.risks, 10) || [],
+          plans: asStrings(o.sections.plans, 12) || [],
         },
       }
     },

@@ -1,12 +1,14 @@
 {
   "openFiles": [
-    "D:/Project/mine/agent-workspace/package.json"
+    "D:/Project/mine/agent-workspace/README.md",
+    "D:/Project/mine/agent-workspace/src/lib/agent.ts"
   ],
-  "activeFile": "D:/Project/mine/agent-workspace/package.json",
+  "activeFile": "D:/Project/mine/agent-workspace/src/lib/agent.ts",
   "expandedFolders": [
     "D:\\Project\\mine\\agent-workspace",
-    "D:\\Project\\mine\\agent-workspace\\src\\app\\settings",
-    "D:/Project/mine/agent-workspace/scripts"
+    "D:/Project/mine/agent-workspace/scripts",
+    "D:\\Project\\mine\\agent-workspace\\src\\lib",
+    "D:\\Project\\mine\\agent-workspace\\src\\app"
   ],
   "scrollPositions": {},
   "cursorPositions": {},
@@ -34,6 +36,6 @@
     },
     "editorVisible": true,
     "chatVisible": true,
-    "activeSidePanel": "git"
+    "activeSidePanel": "explorer"
   }
 }
