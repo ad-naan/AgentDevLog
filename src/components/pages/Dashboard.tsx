@@ -4,11 +4,12 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useStore } from '../StoreProvider'
 import { useToast, apiError } from '../Toast'
-import { scopedActivities, todayStats, lastNDays, type ActivityDTO } from '@/lib/types'
+import { scopedActivities, todayStats, lastNDays, today, type ActivityDTO } from '@/lib/types'
 import {
   IconSpark, IconGitBranch, IconGitMerge, IconGitIssue,
   IconFlame, IconArrow, IconLog, IconClock, IconTerminal,
 } from '../icons'
+import PageSkeleton from '../PageSkeleton'
 
 interface Insight {
   headline: string
@@ -83,13 +84,13 @@ export default function Dashboard() {
     return { greet, dateStr, dayStr, timestamp: d.getTime() }
   }, [])
 
-  const commitSeries = useMemo(() => (s ? lastNDays(s, 12) : []), [s])
+  const commitSeries = useMemo(() => (s ? lastNDays(s, 12, scope) : []), [s, scope])
 
   const prSeries = useMemo(() => {
     if (!s) return []
     const prTotals: Record<string, number> = {}
     for (const a of s.activities) {
-      if (a.type === 'pr') {
+      if (a.type === 'pr' && a.scope === scope) {
         const d = new Date(a.ts).toISOString().slice(0, 10)
         prTotals[d] = (prTotals[d] || 0) + 1
       }
@@ -99,9 +100,9 @@ export default function Dashboard() {
       const dayKey = new Date(baseTs - (11 - i) * 864e5).toISOString().slice(0, 10)
       return prTotals[dayKey] || 0
     })
-  }, [s, nowInfo.timestamp])
+  }, [s, scope, nowInfo.timestamp])
 
-  if (!s) return <p className="text-faint text-[13px] p-6">加载中…</p>
+  if (!s) return <PageSkeleton type="dashboard" />
 
   const feed = scopedActivities(s, scope).slice(0, 40)
   const stats = todayStats(s, scope)
@@ -163,7 +164,7 @@ export default function Dashboard() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-[24px] font-bold tracking-tight leading-tight flex items-center gap-2">
-              {nowInfo.greet}，{s.user.name.split(' ')[0]} <span className="inline-block animate-wave">👋</span>
+              {nowInfo.greet}，{s.user.name.split(' ')[0]}
             </h1>
             <p className="text-[13px] text-dim mt-1 font-normal">
               {scope === 'work' ? '持续记录 · 积累价值 · 让努力可视化' : '认真工作 · 好好生活 · 记录当下'}
@@ -182,37 +183,68 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 3 张关键指标卡片（高度还原 design/bf2f03b8） */}
+        {/* 3 张关键指标卡片（工作=交付指标；生活=记录与成长指标） */}
         <div className="grid grid-cols-3 gap-4">
-          {[
-            {
-              icon: IconGitBranch,
-              bg: 'bg-[rgba(61,220,151,.12)] text-accent border-[rgba(61,220,151,.25)]',
-              n: stats.commits,
-              sub: 'commits today',
-              tag: `↑ +${Math.max(1, stats.commits)} 较昨日`,
-              color: '#3ddc97',
-              series: commitSeries,
-            },
-            {
-              icon: IconGitMerge,
-              bg: 'bg-[rgba(88,166,255,.12)] text-blue border-[rgba(88,166,255,.25)]',
-              n: stats.prs,
-              sub: 'PRs merged',
-              tag: `↑ +${stats.prs > 0 ? stats.prs : 1} 较昨日`,
-              color: '#58a6ff',
-              series: prSeries,
-            },
-            {
-              icon: IconFlame,
-              bg: 'bg-[rgba(167,139,250,.12)] text-purple border-[rgba(167,139,250,.25)]',
-              n: stats.streak,
-              sub: 'day streak',
-              tag: `🔥 连续 ${stats.streak} 天`,
-              color: '#a78bfa',
-              series: commitSeries,
-            },
-          ].map((c) => (
+          {(scope === 'work'
+            ? [
+                {
+                  icon: IconGitBranch,
+                  bg: 'bg-[rgba(61,220,151,.12)] text-accent border-[rgba(61,220,151,.25)]',
+                  n: stats.commits,
+                  sub: 'commits today',
+                  tag: `↑ +${Math.max(1, stats.commits)} 较昨日`,
+                  color: '#3ddc97',
+                  series: commitSeries,
+                },
+                {
+                  icon: IconGitMerge,
+                  bg: 'bg-[rgba(88,166,255,.12)] text-blue border-[rgba(88,166,255,.25)]',
+                  n: stats.prs,
+                  sub: 'PRs merged',
+                  tag: `↑ +${stats.prs > 0 ? stats.prs : 1} 较昨日`,
+                  color: '#58a6ff',
+                  series: prSeries,
+                },
+                {
+                  icon: IconFlame,
+                  bg: 'bg-[rgba(167,139,250,.12)] text-purple border-[rgba(167,139,250,.25)]',
+                  n: stats.streak,
+                  sub: 'day streak',
+                  tag: `连续 ${stats.streak} 天`,
+                  color: '#a78bfa',
+                  series: commitSeries,
+                },
+              ]
+            : [
+                {
+                  icon: IconGitBranch,
+                  bg: 'bg-[rgba(240,136,62,.12)] text-orange border-[rgba(240,136,62,.25)]',
+                  n: feed.filter((f) => new Date(f.ts).toISOString().slice(0, 10) === today()).length,
+                  sub: '今日记录',
+                  tag: '持续记录积累',
+                  color: '#f0883e',
+                  series: commitSeries,
+                },
+                {
+                  icon: IconGitMerge,
+                  bg: 'bg-[rgba(88,166,255,.12)] text-blue border-[rgba(88,166,255,.25)]',
+                  n: s.logs.filter((l) => l.scope === 'life').length,
+                  sub: '累计记录',
+                  tag: '定期复盘输出',
+                  color: '#58a6ff',
+                  series: commitSeries,
+                },
+                {
+                  icon: IconFlame,
+                  bg: 'bg-[rgba(167,139,250,.12)] text-purple border-[rgba(167,139,250,.25)]',
+                  n: stats.streak,
+                  sub: '连续记录天数',
+                  tag: `连续 ${stats.streak} 天`,
+                  color: '#a78bfa',
+                  series: commitSeries,
+                },
+              ]
+          ).map((c) => (
             <div
               key={c.sub}
               className="bg-card border border-line rounded-2xl p-4.5 flex flex-col justify-between transition-all duration-200 hover:border-line2 hover:shadow-[0_8px_30px_rgba(0,0,0,.35)] group">
@@ -260,7 +292,9 @@ export default function Dashboard() {
                 </div>
                 <p className="text-[13px] text-faint">暂无今日动态</p>
                 <p className="text-[11.5px] text-faint/80 mt-1 max-w-sm">
-                  在右侧「快速记录」随手记一条日志，或在「设置」中添加关注的 GitHub 仓库并同步。
+                  {scope === 'work'
+                    ? '在右侧「快速记录」随手记一条日志，或在「设置」中添加关注的 GitHub 仓库并同步。'
+                    : '在右侧「快速记录」随手记一条生活记录，坚持复盘，积累属于自己的经验。'}
                 </p>
               </div>
             )}
@@ -288,7 +322,7 @@ export default function Dashboard() {
                               <i className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
                               {f.type === 'log' && scope === 'life' ? '生活记录' : st.label}
                             </span>
-                            <span className="text-faint font-mono truncate">{f.repo || 'devlog'} / main</span>
+                            <span className="text-faint font-mono truncate">{scope === 'life' ? '生活记录' : `${f.repo || 'devlog'} / main`}</span>
                             <span className="ml-auto text-faint font-mono text-[10.5px] shrink-0">
                               {new Date(f.ts).toTimeString().slice(0, 5)}
                             </span>
@@ -497,7 +531,7 @@ export default function Dashboard() {
               GitHub 仓库{s.lastSync > 0 ? '同步正常' : '未同步'}
             </b>
             <span className="text-[11px] text-faint truncate block mt-0.5">
-              已关注 {s.settings.watchedRepos.length} 个仓库
+              已关注 工作 {s.settings.watchedRepos.length} · 生活 {s.settings.watchedReposLife.length} 个仓库
             </span>
           </div>
           <span className="text-faint group-hover:text-txt group-hover:translate-x-0.5 transition-all text-[14px]">›</span>

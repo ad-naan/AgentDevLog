@@ -41,6 +41,7 @@ export async function loadState(): Promise<AppState> {
     settings: {
       defaultScope: settings.defaultScope as 'work' | 'life',
       watchedRepos: settings.watchedRepos,
+      watchedReposLife: settings.watchedReposLife,
       githubToken: settings.githubToken,
       githubUser: settings.githubUser,
       languages: settings.languages as [string, number, number][],
@@ -63,7 +64,8 @@ export async function loadState(): Promise<AppState> {
       tags: a.tags as [string, string][] | null, ts: a.ts.getTime(),
     })),
     reports: reports.map((r) => ({
-      id: r.id, date: r.date, status: r.status as 'draft' | 'confirmed', summary: r.summary,
+      id: r.id, date: r.date, scope: r.scope as 'work' | 'life',
+      status: r.status as 'draft' | 'confirmed', summary: r.summary,
       sections: r.sections as AppState['reports'][number]['sections'],
       generatedAt: r.generatedAt, basis: r.basis as AppState['reports'][number]['basis'],
     })),

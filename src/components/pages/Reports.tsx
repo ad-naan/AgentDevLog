@@ -7,6 +7,7 @@ import {
   IconCheck, IconClock, IconAlert, IconCalendar,
   IconReport, IconRefresh, IconSpark,
 } from '../icons'
+import PageSkeleton from '../PageSkeleton'
 
 export default function Reports() {
   const { s, scope, api } = useStore()
@@ -17,10 +18,11 @@ export default function Reports() {
   const [manualNotes, setManualNotes] = useState('')
   const [showManual, setShowManual] = useState(false)
 
-  if (!s) return <p className="text-faint text-[13px] p-6">加载中…</p>
+  if (!s) return <PageSkeleton type="reports" />
 
-  const reports = s.reports
+  const reports = s.reports.filter((x) => x.scope === scope)
   const r = reports.find((x) => x.id === sel) || reports[0]
+  const isWork = scope === 'work'
 
   const confirm = async () => {
     if (!r) return
@@ -105,9 +107,11 @@ export default function Reports() {
         </div>
         <h2 className="text-[17px] font-bold text-txt">暂无报告归档</h2>
         <p className="text-[13px] text-dim">
-          基于当前已记录的工作日志、GitHub 提交与 PR 动态，由 AI 自动生成量化结构的工作日报或周报。
+          {isWork
+            ? '基于当前已记录的工作日志、GitHub 提交与 PR 动态，由 AI 自动生成量化结构的工作日报或周报（可直接用于向上汇报）。'
+            : '基于生活记录与想做的事，由 AI 提炼经历、感悟与教训，生成面向自我成长的生活复盘（仅自己可见的视角）。'}
         </p>
-        {manualPanel}
+        {isWork && manualPanel}
         <div className="flex items-center gap-3 mt-2">
           <button
             onClick={() => generate('day')}
@@ -115,13 +119,14 @@ export default function Reports() {
             className={`btn-press px-5 py-2.5 rounded-xl text-white text-[13px] font-semibold disabled:opacity-60 shadow-lg ${
               busy ? 'ai-btn-busy' : 'bg-gradient-to-r from-[#6D5EF0] to-[#4F7CF0]'
             }`}>
-            {busy ? '✦ AI 正在生成中…' : '✦ 生成今日日报'}
+            {busy ? '✦ AI 正在生成中…' : isWork ? '✦ 生成今日日报' : '✦ 生成今日复盘'}
           </button>
           <button
             onClick={() => generate('week')}
             disabled={busy}
             className="btn-press px-4 py-2.5 rounded-xl border border-line text-[13px] font-medium text-dim hover:text-txt hover:bg-white/[0.04] disabled:opacity-60">
-            ✦ 生成上周周报
+            ✦ 生成上周{isWork ? '周报' : '周复盘'}
+
           </button>
         </div>
       </div>
@@ -130,25 +135,39 @@ export default function Reports() {
 
   const isWeek = (r.basis as { kind?: string })?.kind === 'week'
   const sections = isWeek
-    ? [
-        { title: '本周重点项目进度', Icon: IconCheck, color: 'text-accent', dot: 'bg-accent', items: r.sections.done },
-        { title: '进行中与未完成', Icon: IconClock, color: 'text-blue', dot: 'bg-blue', items: r.sections.doing },
-        { title: '风险与阻塞问题', Icon: IconAlert, color: 'text-red', dot: 'bg-red', items: r.sections.risks },
-        { title: '下周计划（含预期产出）', Icon: IconCalendar, color: 'text-purple', dot: 'bg-purple', items: r.sections.plans },
-      ]
-    : [
-        { title: '今日完成', Icon: IconCheck, color: 'text-accent', dot: 'bg-accent', items: r.sections.done },
-        { title: '进行中', Icon: IconClock, color: 'text-blue', dot: 'bg-blue', items: r.sections.doing },
-        { title: '风险与阻塞', Icon: IconAlert, color: 'text-red', dot: 'bg-red', items: r.sections.risks },
-        { title: '明日计划', Icon: IconCalendar, color: 'text-purple', dot: 'bg-purple', items: r.sections.plans },
-      ]
+    ? isWork
+      ? [
+          { title: '本周重点项目进度', Icon: IconCheck, color: 'text-accent', dot: 'bg-accent', items: r.sections.done },
+          { title: '进行中与未完成', Icon: IconClock, color: 'text-blue', dot: 'bg-blue', items: r.sections.doing },
+          { title: '风险与阻塞问题', Icon: IconAlert, color: 'text-red', dot: 'bg-red', items: r.sections.risks },
+          { title: '下周计划（含预期产出）', Icon: IconCalendar, color: 'text-purple', dot: 'bg-purple', items: r.sections.plans },
+        ]
+      : [
+          { title: '本周经历与收获', Icon: IconCheck, color: 'text-orange', dot: 'bg-orange', items: r.sections.done },
+          { title: '观察与模式', Icon: IconClock, color: 'text-blue', dot: 'bg-blue', items: r.sections.doing },
+          { title: '反思与教训', Icon: IconAlert, color: 'text-red', dot: 'bg-red', items: r.sections.risks },
+          { title: '下周行动（可验证）', Icon: IconCalendar, color: 'text-purple', dot: 'bg-purple', items: r.sections.plans },
+        ]
+    : isWork
+      ? [
+          { title: '今日完成', Icon: IconCheck, color: 'text-accent', dot: 'bg-accent', items: r.sections.done },
+          { title: '进行中', Icon: IconClock, color: 'text-blue', dot: 'bg-blue', items: r.sections.doing },
+          { title: '风险与阻塞', Icon: IconAlert, color: 'text-red', dot: 'bg-red', items: r.sections.risks },
+          { title: '明日计划', Icon: IconCalendar, color: 'text-purple', dot: 'bg-purple', items: r.sections.plans },
+        ]
+      : [
+          { title: '今日经历', Icon: IconCheck, color: 'text-orange', dot: 'bg-orange', items: r.sections.done },
+          { title: '观察与感悟', Icon: IconClock, color: 'text-blue', dot: 'bg-blue', items: r.sections.doing },
+          { title: '反思与教训', Icon: IconAlert, color: 'text-red', dot: 'bg-red', items: r.sections.risks },
+          { title: '明日行动', Icon: IconCalendar, color: 'text-purple', dot: 'bg-purple', items: r.sections.plans },
+        ]
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-5 h-full min-h-0 max-w-[1400px] mx-auto overflow-hidden">
       {/* 左栏：日报归档列表（对齐 design/e32f7db2） */}
       <div className="bg-card border border-line rounded-2xl flex flex-col min-h-0 overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-line bg-white/[0.01]">
-          <b className="text-[13.5px] font-semibold">日报归档</b>
+          <b className="text-[13.5px] font-semibold">{isWork ? '日报归档' : '复盘归档'}</b>
           <button
             onClick={regenerate}
             disabled={busy}

@@ -30,7 +30,8 @@ model Settings {
   userId        Int     @unique
   user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   defaultScope  String  @default("work")
-  watchedRepos  String[] @default([])
+  watchedRepos     String[] @default([]) // 工作分区关注的仓库
+  watchedReposLife String[] @default([]) // 生活分区关注的仓库（个人项目等）
   githubToken   String  @default("")
   githubUser    String  @default("")
   languages     Json    @default("[]")
@@ -97,6 +98,7 @@ model Report {
   userId      Int
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   date        String
+  scope       String   @default("work") // work=向上汇报 | life=个人复盘，两套独立报告
   status      String   @default("draft")
   summary     String   @db.Text
   sections    Json
@@ -104,7 +106,7 @@ model Report {
   basis       Json
   createdAt   DateTime @default(now())
 
-  @@unique([userId, date])
+  @@unique([userId, scope, date])
 }
 
 model Breakdown {

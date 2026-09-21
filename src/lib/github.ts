@@ -25,7 +25,12 @@ export async function syncGithub(userId: number) {
       .filter((v): v is string => v !== null),
   )
 
-  for (const repo of settings.watchedRepos.slice(0, 5)) {
+  // 按分区拉取：工作仓库 → scope=work，生活仓库（个人项目等）→ scope=life，两侧各限 5 个
+  const groups: [string[], 'work' | 'life'][] = [
+    [settings.watchedRepos, 'work'],
+    [settings.watchedReposLife, 'life'],
+  ]
+  for (const [groupRepos, scope] of groups) for (const repo of groupRepos.slice(0, 5)) {
     const headers: Record<string, string> = headersBase
     // 先取仓库可见性：私有仓库的 PushEvent 走下方 Commits API 兜底（逐 commit 记录），
     // 避免「push 活动记录 + commit 记录」双份计数
@@ -136,7 +141,7 @@ export async function syncGithub(userId: number) {
         const created = await prisma.activity
           .create({
             data: {
-              userId, type, repo, scope: 'work', title, desc, meta, ts,
+              userId, type, repo, scope, title, desc, meta, ts,
               extId: `gh:${e.id}`,
             },
           })
@@ -191,7 +196,7 @@ export async function syncGithub(userId: number) {
           const created = await prisma.activity
             .create({
               data: {
-                userId, type: 'commit', repo, scope: 'work', title,
+                userId, type: 'commit', repo, scope, title,
                 meta: `${c.sha.slice(0, 7)} · ${ts.toISOString().replace('T', ' ').slice(0, 16)}`,
                 ts, extId,
               },

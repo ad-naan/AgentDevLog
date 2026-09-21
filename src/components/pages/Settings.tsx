@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation'
 import { useStore } from '../StoreProvider'
 import type { Scope } from '@/lib/types'
 import { IconGear, IconSpark, IconClose } from '../icons'
+import PageSkeleton from '../PageSkeleton'
 
 export default function Settings() {
   const { s, refresh, api } = useStore()
   const router = useRouter()
   const [repoInput, setRepoInput] = useState('')
+  const [repoInputLife, setRepoInputLife] = useState('')
   const [token, setToken] = useState('')
   const [ghUser, setGhUser] = useState('')
   const [name, setName] = useState('')
@@ -22,7 +24,7 @@ export default function Settings() {
   const [status, setStatus] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  if (!s) return <p className="text-faint text-[13px] p-6">加载中…</p>
+  if (!s) return <PageSkeleton type="settings" />
 
   const validRepo = /^[\w.-]+\/[\w.-]+$/
   const patch = (body: Record<string, unknown>) =>
@@ -32,16 +34,26 @@ export default function Settings() {
       body: JSON.stringify(body),
     })
 
-  const addRepo = async () => {
-    const r = repoInput.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '')
-    if (!validRepo.test(r) || s.settings.watchedRepos.includes(r)) return
-    await patch({ watchedRepos: [...s.settings.watchedRepos, r] })
-    setRepoInput('')
-    setStatus(`已添加关注仓库 ${r}，点击「立即同步」拉取活动`)
+  const normalizeRepo = (v: string) =>
+    v.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '')
+
+  const addRepo = async (scope: Scope) => {
+    const raw = scope === 'work' ? repoInput : repoInputLife
+    const r = normalizeRepo(raw)
+    const cur = scope === 'work' ? s.settings.watchedRepos : s.settings.watchedReposLife
+    const key = scope === 'work' ? 'watchedRepos' : 'watchedReposLife'
+    if (!validRepo.test(r) || cur.includes(r)) return
+    await patch({ [key]: [...cur, r] })
+    if (scope === 'work') setRepoInput('')
+    else setRepoInputLife('')
+    setStatus(`已添加${scope === 'work' ? '工作' : '生活'}关注仓库 ${r}，点击「立即同步」拉取活动`)
   }
 
-  const removeRepo = (r: string) =>
-    patch({ watchedRepos: s.settings.watchedRepos.filter((x) => x !== r) })
+  const removeRepo = (r: string, scope: Scope) => {
+    const cur = scope === 'work' ? s.settings.watchedRepos : s.settings.watchedReposLife
+    const key = scope === 'work' ? 'watchedRepos' : 'watchedReposLife'
+    patch({ [key]: cur.filter((x) => x !== r) })
+  }
 
   const doSync = async () => {
     setBusy(true)
@@ -155,49 +167,81 @@ export default function Settings() {
         </div>
       </section>
 
-      {/* 关注的 GitHub 仓库 */}
+      {/* 关注的 GitHub 仓库：按分区隔离 */}
       <section className="bg-card border border-line rounded-2xl p-5 shadow-sm">
         <h2 className="text-[15px] font-bold text-txt mb-1">关注的 GitHub 仓库</h2>
         <p className="text-[12px] text-dim mb-4">
-          工作台的活动动态、提交统计与热力图只统计关注的仓库。格式：
+          仓库按分区隔离：同步后工作仓库的动态进入工作分区，生活仓库（个人项目等）进入生活分区，互不混杂。格式：
           <code className="font-mono text-accent bg-accent/10 px-1.5 py-0.5 rounded ml-1">owner/repo</code>
         </p>
-        <div className="flex gap-2">
-          <input
-            value={repoInput}
-            onChange={(e) => setRepoInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && addRepo()}
-            placeholder="例如：vercel/next.js"
-            className="flex-1 bg-inset border border-line rounded-xl px-3.5 py-2 text-[13px] font-mono outline-none focus:border-accent transition-colors"
-          />
-          <button
-            onClick={addRepo}
-            className="btn-press px-4 py-2 rounded-xl border border-line2 text-[13px] hover:bg-white/[0.05] font-medium">
-            添加
-          </button>
-        </div>
-        <div className="mt-3 flex flex-col gap-2">
-          {s.settings.watchedRepos.map((r) => (
-            <div
-              key={r}
-              className="flex items-center gap-3 bg-inset border border-line rounded-xl px-3.5 py-2.5 hover:border-line2 transition-colors">
-              <svg viewBox="0 0 16 16" width={15} height={15} fill="#8b94a3">
-                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
-              </svg>
-              <span className="font-mono text-[13px] text-txt">{r}</span>
-              <button
-                onClick={() => removeRepo(r)}
-                className="btn-press ml-auto text-faint hover:text-red p-1 rounded transition-colors">
-                <IconClose className="w-3.5 h-3.5" />
-              </button>
+        {([
+          ['work', '工作仓库', '统计进工作区的活动、提交与热力图', repoInput, setRepoInput],
+          ['life', '生活仓库', '个人/开源项目，统计进生活区', repoInputLife, setRepoInputLife],
+        ] as [Scope, string, string, string, (v: string) => void][]).map(([scope, label, hint, input, setInput]) => {
+          const repos = scope === 'work' ? s.settings.watchedRepos : s.settings.watchedReposLife
+          return (
+            <div key={scope} className={scope === 'life' ? 'mt-4' : ''}>
+              <div className="flex items-center gap-2 mb-2">
+                <span
+                  className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${
+                    scope === 'work'
+                      ? 'text-accent border-accent/40 bg-accent/10'
+                      : 'text-orange border-orange/40 bg-orange/10'
+                  }`}>
+                  {label}
+                </span>
+                <span className="text-[11px] text-faint">{hint}</span>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && addRepo(scope)}
+                  placeholder="例如：vercel/next.js"
+                  className={`flex-1 bg-inset border border-line rounded-xl px-3.5 py-2 text-[13px] font-mono outline-none transition-colors ${
+                    scope === 'work' ? 'focus:border-accent' : 'focus:border-orange'
+                  }`}
+                />
+                <button
+                  onClick={() => addRepo(scope)}
+                  className="btn-press px-4 py-2 rounded-xl border border-line2 text-[13px] hover:bg-white/[0.05] font-medium">
+                  添加
+                </button>
+              </div>
+              <div className="mt-3 flex flex-col gap-2">
+                {repos.map((r) => (
+                  <div
+                    key={r}
+                    className="flex items-center gap-3 bg-inset border border-line rounded-xl px-3.5 py-2.5 hover:border-line2 transition-colors">
+                    <svg viewBox="0 0 16 16" width={15} height={15} fill="#8b94a3">
+                      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 8.0 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    <span className="font-mono text-[13px] text-txt">{r}</span>
+                    <span
+                      className={`text-[10.5px] px-1.5 py-0.5 rounded border ${
+                        scope === 'work'
+                          ? 'text-accent border-accent/40 bg-accent/10'
+                          : 'text-orange border-orange/40 bg-orange/10'
+                      }`}>
+                      {scope === 'work' ? '工作' : '生活'}
+                    </span>
+                    <button
+                      onClick={() => removeRepo(r, scope)}
+                      className="btn-press ml-auto text-faint hover:text-red p-1 rounded transition-colors">
+                      <IconClose className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+                {repos.length === 0 && (
+                  <p className="text-[12px] text-faint py-3 text-center border border-dashed border-line rounded-xl">
+                    暂无{scope === 'work' ? '工作' : '生活'}关注仓库，添加后同步的动态将归入
+                    {scope === 'work' ? '工作' : '生活'}分区。
+                  </p>
+                )}
+              </div>
             </div>
-          ))}
-          {s.settings.watchedRepos.length === 0 && (
-            <p className="text-[12px] text-faint py-3 text-center border border-dashed border-line rounded-xl">
-              暂无关注仓库，添加几个仓库后即可同步代码动态与提交热力图。
-            </p>
-          )}
-        </div>
+          )
+        })}
       </section>
 
       {/* AI / LLM 配置 */}

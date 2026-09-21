@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useStore } from '../StoreProvider'
 import { heatmap } from '@/lib/types'
 import { IconClock, IconSpark, IconChart } from '../icons'
+import PageSkeleton from '../PageSkeleton'
 
 const DAYS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
 
@@ -19,7 +20,7 @@ const hmCls = (n: number) =>
     : 'bg-[#74c69d] shadow-[0_0_10px_rgba(116,198,157,.8)]'
 
 export default function Analytics() {
-  const { s } = useStore()
+  const { s, scope } = useStore()
   const [range, setRange] = useState('最近 30 天')
   const [selDate, setSelDate] = useState<string | null>(null)
 
@@ -29,7 +30,8 @@ export default function Analytics() {
   const weeks = range === '最近 7 天' ? 2 : range === '最近 90 天' ? 14 : 6
   const rangeDays = weeks * 7
 
-  const cols = useMemo(() => (s ? heatmap(s, weeks) : []), [s, weeks])
+  // 热力图口径随分区：工作=commit 活跃，生活=记录频率
+  const cols = useMemo(() => (s ? heatmap(s, weeks, scope) : []), [s, weeks, scope])
 
   const cutoff = useMemo(() => baseTime - rangeDays * 864e5, [baseTime, rangeDays])
 
@@ -51,15 +53,15 @@ export default function Analytics() {
     return s.settings.languages.reduce((n, l) => n + l[1], 0) || 1
   }, [s])
 
-  if (!s) return <p className="text-faint text-[13px] p-6">加载中…</p>
+  if (!s) return <PageSkeleton type="analytics" />
 
   return (
     <div className="flex flex-col gap-5 min-h-0 h-full overflow-y-auto pr-1 max-w-[1400px] mx-auto pb-6">
       {/* 顶部标题与范围选择器（对齐 design/3bbcd798） */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[24px] font-bold tracking-tight text-txt flex items-center gap-2">
-            你好，{s.user.name.split(' ')[0]} <span className="inline-block">👋</span>
+          <h1 className="text-[24px] font-bold tracking-tight text-txt">
+            你好，{s.user.name.split(' ')[0]}
           </h1>
           <p className="text-[13px] text-dim mt-0.5">
             以下是你最近的代码活动与 AI 洞察，帮助你更好地提升开发效率。

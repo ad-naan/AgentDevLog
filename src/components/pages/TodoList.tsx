@@ -8,6 +8,7 @@ import {
   IconCalendar, IconLink, IconFlame, IconSpark,
   IconClock, IconCheck, IconClose, IconPlus, IconMore,
 } from '../icons'
+import PageSkeleton from '../PageSkeleton'
 
 const P_CLS: Record<Priority, { badge: string; text: string }> = {
   P0: { badge: 'bg-[rgba(248,81,73,.15)] border-[rgba(248,81,73,.3)] text-red', text: 'P0 紧急' },
@@ -337,7 +338,7 @@ export default function TodoList() {
     return list
   }, [todos, api, toast])
 
-  if (!s) return <p className="text-faint text-[13px] p-6">加载中…</p>
+  if (!s) return <PageSkeleton type="todos" />
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5 h-full min-h-0 max-w-[1400px] mx-auto">
@@ -442,7 +443,7 @@ export default function TodoList() {
 
         {/* 分组列表 */}
         <Group
-          title={scope === 'work' ? '🔥 今天 · 高优先' : '🔥 今天'}
+          title={scope === 'work' ? '今日 · 聚焦高优先' : '今日待办'}
           count={today.length}
           open={openToday}
           onToggle={() => setOpenToday(!openToday)}
@@ -458,7 +459,7 @@ export default function TodoList() {
         </Group>
 
         <Group
-          title="📅 本周及以后"
+          title="本周及以后"
           count={week.length}
           open={openWeek}
           onToggle={() => setOpenWeek(!openWeek)}
@@ -472,7 +473,7 @@ export default function TodoList() {
         </Group>
 
         <Group
-          title="✔ 已完成"
+          title="已完成"
           count={done.length}
           open={openDone}
           onToggle={() => setOpenDone(!openDone)}

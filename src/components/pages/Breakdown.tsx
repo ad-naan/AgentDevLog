@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useStore } from '../StoreProvider'
 import { useToast, apiError } from '../Toast'
 import type { BreakdownDTO } from '@/lib/types'
-import { IconSpark, IconCopy, IconCheck, IconRobot, IconLink } from '../icons'
+import { IconSpark, IconCopy, IconCheck, IconRobot, IconLink, IconReport } from '../icons'
 
 const MODES: [BreakdownDTO['mode'], string, string][] = [
   ['标准', '◫', '按功能模块拆解'],
@@ -346,7 +346,7 @@ export default function Breakdown() {
             <div className="bg-card border border-line rounded-2xl p-5 fade-up flex flex-col gap-3">
               <div className="flex items-center justify-between border-b border-line pb-2.5">
                 <b className="text-[13.5px] flex items-center gap-2">
-                  <span className="text-accent">📄</span>技术方案要点
+                  <IconReport className="w-4 h-4 text-accent" />技术方案要点
                 </b>
                 <button
                   onClick={copyTech}

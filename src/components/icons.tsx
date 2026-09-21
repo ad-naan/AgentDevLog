@@ -314,6 +314,41 @@ export const IconRobot = (p: P) => (
   </svg>
 )
 
+// 盾牌（安全保护）
+export const IconShield = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+  </svg>
+)
+
+// 挂锁（加密安全）
+export const IconLock = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="5" y="11" width="14" height="10" rx="2" />
+    <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    <circle cx="12" cy="16" r="1.2" className="fill-current stroke-none" />
+  </svg>
+)
+
+// 数据库（私有化存储）
+export const IconDatabase = (p: P) => (
+  <svg {...base(p)}>
+    <ellipse cx="12" cy="5" rx="9" ry="3" />
+    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+  </svg>
+)
+
+// 密钥（OAuth PKCE）
+export const IconKey = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="7.5" cy="15.5" r="4.5" />
+    <path d="M21 2l-9.6 9.6M15.5 7.5l2.5 2.5M13 10l2.5 2.5" />
+  </svg>
+)
+
+
+
 // ─── 品牌标识：「终端之眼」───
 // 圆角终端窗 + 眼瞳般的提示符，光标呼吸闪烁（见 globals.css .logo-cursor）
 export function Logo({ size = 34, className = '' }: { size?: number; className?: string }) {

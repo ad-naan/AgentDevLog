@@ -43,7 +43,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error('Failed to refresh state', err)
     }
-  }, [])
+  }, [router])
 
   useEffect(() => {
     let active = true
@@ -71,7 +71,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return () => {
       active = false
     }
-  }, [])
+  }, [router])
 
   const api = useCallback(async (path: string, init?: RequestInit) => {
     const r = await fetch(path, init)

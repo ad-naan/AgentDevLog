@@ -110,7 +110,7 @@ export async function runAssistant(
   const r = await chatJSON<{ reply: string }>(
     cfg,
     [
-      { role: 'system', content: `你是 devlog 工作台的 AI 助手，简洁中文回答。可以用以下用户近况作为背景：\n${ctx}` },
+      { role: 'system', content: `你是 devlog 工作台的 AI 助手${scope === 'work' ? '（当前为工作分区：面向向上汇报与交付，回答偏向进展、价值与风险）' : '（当前为生活分区：面向自我复盘与成长，回答偏向感受、经验与改进，语气温和'}。简洁中文回答。可以用以下用户近况作为背景：\n${ctx}` },
       ...turns.slice(-8).map((t) => ({ role: t.role, content: t.content.slice(0, 1000) })),
       // 追加一个约束轮，确保输出 JSON
       { role: 'user', content: '（请以 {"reply":"..."} 的 JSON 格式回答上一条）' },
@@ -205,28 +205,46 @@ export async function agentReport(
   },
 ): Promise<ReportResult> {
   const cfg = await requireLLMConfig(userId)
+  // 双轨定位：工作=向上汇报（结果/价值/风险）；生活=自我复盘（经历/感悟/改进）
+  const isWork = scope === 'work'
+  const system = isWork
+    ? '你是工作日报助手，为撰写者生成可直接提交给上级的日报：进展清晰、结果导向、量化价值、风险与计划明确。严格依据真实记录，不虚构。只输出 JSON。'
+    : '你是私人复盘教练，把用户当天的生活记录提炼为成长复盘：忠实于经历，侧重观察、感悟与教训，落脚到具体可执行的改进。不评判、不说教、不虚构。只输出 JSON。'
   return chatJSON<ReportResult>(
     cfg,
     [
-      { role: 'system', content: '你是工作日报助手。根据原始记录生成简洁、专业、不虚构事实的日报。只输出 JSON。' },
+      { role: 'system', content: system },
       {
         role: 'user',
-        content: `基于以下真实记录生成今日（${today()}）${scope === 'work' ? '工作' : '生活'}日报。
+        content: `基于以下真实记录生成今日（${today()}）${isWork ? '工作日报（供向上汇报）' : '生活复盘（供自我提升）'}。
 
-格式：{"summary":"一句话总结(40字内)","sections":{"done":["已完成事项"],"doing":["进行中"],"risks":["风险或阻塞"],"plans":["明日计划"]}}
+${isWork
+  ? `sections 语义（汇报口径）：
+- done：今日完成，写清「做了什么 + 达到什么结果/价值」，尽量量化
+- doing：进行中，当前进度与状态
+- risks：风险与阻塞，写清影响与需要的支持
+- plans：明日计划，写清预期产出`
+  : `sections 语义（复盘口径）：
+- done：今日经历，客观记录做了什么、和谁、当时的感受
+- doing：观察与感悟，今天有什么新发现、认知上的变化
+- risks：反思与教训，哪里做得不够好、背后的原因是什么
+- plans：明日行动，从反思中提炼的具体改进（可执行、可验证）`}
+
+格式：{"summary":"一句话总结(40字内)","sections":{"done":["…"],"doing":["…"],"risks":["…"],"plans":["…"]}}
 每类 2-4 条，只依据记录，不要编造。
 
 日志：
 ${basis.logs.map((l) => `- ${l.title}: ${l.content}`).join('\n') || '（无）'}
 
-Commits（${basis.commits.length} 条）：
+${isWork ? `Commits（${basis.commits.length} 条）：
 ${basis.commits.slice(0, 10).map((c) => `- [${c.repo}] ${c.title}`).join('\n') || '（无）'}
 
 PR 事件（${basis.prs.length} 条）：
 ${basis.prs.slice(0, 10).map((c) => `- [${c.repo}] ${c.title}`).join('\n') || '（无）'}
 
 未完成待办：
-${basis.openTodos.slice(0, 15).map((t) => `- ${t}`).join('\n') || '（无）'}`,
+${basis.openTodos.slice(0, 15).map((t) => `- ${t}`).join('\n') || '（无）'}` : `未完成待办（可视为「想做的事」，用于行动建议）：
+${basis.openTodos.slice(0, 15).map((t) => `- ${t}`).join('\n') || '（无）'}`}`,
       },
     ],
     (p) => {
@@ -269,6 +287,64 @@ export async function agentWeeklyReport(
   const cfg = await requireLLMConfig(userId)
   const [from, to] = basis.range
   const manual = (basis.manualNotes || []).map((x) => x.trim()).filter(Boolean)
+
+  // ── 生活周复盘：给自己看的复盘，不做项目量化，聚焦经验提炼与行为改进 ──
+  if (scope === 'life') {
+    return chatJSON<ReportResult>(
+      cfg,
+      [
+        {
+          role: 'system',
+          content:
+            '你是私人成长复盘教练，为用户撰写一周生活复盘（给自己看，不是给别人汇报）。硬性要求：' +
+            '① 忠实于记录，不虚构、不美化，记录不足时如实说明；' +
+            '② 重点从经历中提炼可复用的经验与反复出现的模式（时间分配、情绪触发点、习惯养成等）；' +
+            '③ 反思要挖到原因，行动要具体可执行、下周可验证；' +
+            '④ 语气真诚克制，不说教、不灌鸡汤。只输出 JSON，不要多余解释。',
+        },
+        {
+          role: 'user',
+          content: `基于以下真实记录，生成 ${from} ~ ${to} 的生活周复盘。
+
+sections 语义（复盘口径，存储字段沿用 done/doing/risks/plans）：
+- done：本周经历与收获，按主题归纳（如健康、学习、关系、兴趣），突出值得记住的时刻与真实成长
+- doing：观察与模式，本周反复出现的行为/情绪/时间模式，以及背后的可能原因
+- risks：反思与教训，哪些做得不够好、错失了什么、根因是什么（对自己诚实，但不过度自责）
+- plans：下周行动，从反思导出的具体改进，可执行、可验证，不超过 5 条
+
+输出 JSON 格式：{"summary":"一句话诚实总结本周(60字内)","sections":{"done":[],"doing":[],"risks":[],"plans":[]}}
+每类 2-5 条，只依据下方记录，宁可写「本周记录较少」也不要编造。
+
+本周生活日志（${basis.logs.length} 篇）：
+${basis.logs.map((l) => `- ${l.title}: ${l.content.slice(0, 400)}`).join('\n') || '（无）'}
+
+本周完成的待办（${basis.closedTodos.length} 个）：
+${basis.closedTodos.slice(0, 25).map((t) => `- ${t}`).join('\n') || '（无）'}
+
+未完成 / 想做的事：
+${basis.openTodos.slice(0, 25).map((t) => `- ${t}`).join('\n') || '（无）'}`,
+        },
+      ],
+      (p) => {
+        const o = p as { summary?: unknown; sections?: Record<string, unknown> }
+        if (typeof o.summary !== 'string' || !o.summary || !o.sections) return null
+        const done = asStrings(o.sections.done, 12)
+        if (!done) return null
+        return {
+          summary: o.summary.slice(0, 160),
+          sections: {
+            done,
+            doing: asStrings(o.sections.doing, 10) || [],
+            risks: asStrings(o.sections.risks, 8) || [],
+            plans: asStrings(o.sections.plans, 8) || [],
+          },
+        }
+      },
+      { temperature: 0.5, timeoutMs: 120_000 },
+    )
+  }
+
+  // ── 工作周报：面向上级的汇报体 ──
   return chatJSON<ReportResult>(
     cfg,
     [
@@ -435,7 +511,10 @@ async function persistQuickCapture(
       },
     })
   }
-  const repo = (await prisma.settings.findUniqueOrThrow({ where: { userId } })).watchedRepos[0] || 'local/notes'
+  // 生活区与工作区仓库完全切割：生活日志挂 life/notes，不引用工作关注仓库
+  const repo = scope === 'work'
+    ? (await prisma.settings.findUniqueOrThrow({ where: { userId } })).watchedRepos[0] || 'work/notes'
+    : 'life/notes'
   await prisma.activity.create({
     data: { userId, type: 'log', repo, scope, title: r.title, ts: new Date() },
   })
@@ -460,13 +539,16 @@ export async function agentInsight(
   },
 ): Promise<InsightResult> {
   const cfg = await requireLLMConfig(userId)
+  const persona = scope === 'work'
+    ? '你是工作汇报顾问，基于真实数据给出面向「向上汇报与交付」的犀利洞察：进度风险、价值呈现、优先级建议。'
+    : '你是个人成长教练，基于真实记录给出面向「自我提升」的洞察：行为模式、成长机会、值得坚持或调整的事。'
   return chatJSON<InsightResult>(
     cfg,
     [
-      { role: 'system', content: '你是开发者的智能工作台助手，基于真实数据给出犀利、可执行的洞察。只输出 JSON。' },
+      { role: 'system', content: `${persona}只输出 JSON。` },
       {
         role: 'user',
-        content: `综合以下工作台数据，给出今日洞察（当前分区：${scope === 'work' ? '工作' : '生活'}）。
+        content: `综合以下工作台数据，给出今日洞察（当前分区：${scope === 'work' ? '工作（汇报视角）' : '生活（成长视角）'}）。
 
 格式：{"headline":"一句话洞察(25字内)","points":["2-4 条具体发现，引用数据"],"suggestion":"一条最值得现在做的行动建议(30字内)"}
 
@@ -498,17 +580,21 @@ ${context.breakdowns.map((b) => `- ${b.requirement.slice(0, 60)}（${b.modules} 
 
 export async function agentLogTips(
   userId: number,
+  scope: 'work' | 'life',
   draft: { title: string; content: string },
   todaysActivities: { type: string; title: string; repo: string }[],
 ): Promise<string[]> {
   const cfg = await requireLLMConfig(userId)
+  const persona = scope === 'work'
+    ? '你是工作日志写作教练：帮用户把日志写成有汇报价值的记录——补结果、补量化、补影响。'
+    : '你是生活复盘写作教练：帮用户把日记写成有成长价值的复盘——补感受、补细节、补反思，引导而不评判。'
   return chatJSON<string[]>(
     cfg,
     [
-      { role: 'system', content: '你是开发者日志写作教练。只输出 JSON。' },
+      { role: 'system', content: `${persona}只输出 JSON。` },
       {
         role: 'user',
-        content: `基于日志草稿与今日真实活动，给出 3 条具体、可直接落笔的写作建议（补充哪类内容、如何量化、如何组织）。
+        content: `基于日志草稿与今日真实活动，给出 3 条具体、可直接落笔的写作建议（${scope === 'work' ? '补充哪类结果与量化、如何组织以便汇报' : '补充哪类细节与感受、如何深化反思'}）。
 每条 ≤40 字，引用真实活动，不要空话。
 
 格式：{"tips":["...","...","..."]}

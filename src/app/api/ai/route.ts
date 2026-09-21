@@ -10,17 +10,19 @@ export async function POST(req: Request) {
 
   // 日志写作建议
   if (intent === 'logtips') {
+    const sc = body?.scope === 'life' ? 'life' : 'work'
     const draft = {
       title: typeof body?.title === 'string' ? body.title.slice(0, 200) : '',
       content: typeof body?.content === 'string' ? body.content.slice(0, 4000) : '',
     }
     const acts = await prisma.activity.findMany({
-      where: { userId, ts: { gte: new Date(new Date().toISOString().slice(0, 10)) } },
+      where: { userId, scope: sc, ts: { gte: new Date(new Date().toISOString().slice(0, 10)) } },
       orderBy: { ts: 'desc' }, take: 15,
       select: { type: true, title: true, repo: true },
     })
     const tips = await agentLogTips(
       userId,
+      sc,
       draft,
       acts.map((a) => ({ type: a.type, title: a.title, repo: a.repo })),
     )

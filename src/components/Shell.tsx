@@ -124,18 +124,29 @@ function Sidebar() {
             {s?.user.avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={s.user.avatar} alt="" className="w-8 h-8 rounded-full object-cover ring-1 ring-white/10" />
-            ) : (
+            ) : s ? (
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#4A8CF7] to-[#6D5AE6] flex items-center justify-center text-[11px] font-bold text-white shadow-sm">
-                {(s?.user.name || 'U').trim()[0]?.toUpperCase()}
+                {(s.user.name || 'U').trim()[0]?.toUpperCase()}
               </div>
+            ) : (
+              <div className="skeleton w-8 h-8 rounded-full" />
             )}
-            <span aria-hidden className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-accent border-2 border-[#101622] shadow-[0_0_8px_rgba(61,220,151,.8)]" />
+            {s && <span aria-hidden className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-accent border-2 border-[#101622] shadow-[0_0_8px_rgba(61,220,151,.8)]" />}
           </div>
           <div className="min-w-0 flex-1">
-            <b className="block text-[12px] font-semibold leading-tight truncate text-txt">{s?.user.name ?? '…'}</b>
-            <span className="block text-[10px] text-faint truncate mt-0.5">
-              {s?.user.login ? `@${s.user.login}` : s?.user.title}
-            </span>
+            {s ? (
+              <>
+                <b className="block text-[12px] font-semibold leading-tight truncate text-txt">{s.user.name}</b>
+                <span className="block text-[10px] text-faint truncate mt-0.5">
+                  {s.user.login ? `@${s.user.login}` : s.user.title}
+                </span>
+              </>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                <div className="skeleton h-3.5 w-18" />
+                <div className="skeleton h-2.5 w-24" />
+              </div>
+            )}
           </div>
           <button
             onClick={logout}

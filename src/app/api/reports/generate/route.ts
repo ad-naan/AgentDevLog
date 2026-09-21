@@ -87,9 +87,9 @@ export async function POST(req: Request) {
       }
       const generatedAt = `${t} ${new Date().toTimeString().slice(0, 5)}`
       const report = await prisma.report.upsert({
-        where: { userId_date: { userId, date: `${from} 周报` } },
+        where: { userId_scope_date: { userId, scope, date: `${from} 周报` } },
         update: { status: 'draft', summary, sections, basis, generatedAt },
-        create: { userId, date: `${from} 周报`, status: 'draft', summary, sections, basis, generatedAt },
+        create: { userId, scope, date: `${from} 周报`, status: 'draft', summary, sections, basis, generatedAt },
       })
       return NextResponse.json(report)
     }
@@ -112,9 +112,9 @@ export async function POST(req: Request) {
     const basis = { kind: 'day' as const, logs: logs.filter((l) => l.date === t).length, commits: commits.length, prs: prs.length }
     const generatedAt = `${t} ${new Date().toTimeString().slice(0, 5)}`
     const report = await prisma.report.upsert({
-      where: { userId_date: { userId, date: t } },
+      where: { userId_scope_date: { userId, scope, date: t } },
       update: { status: 'draft', summary, sections, basis, generatedAt },
-      create: { userId, date: t, status: 'draft', summary, sections, basis, generatedAt },
+      create: { userId, scope, date: t, status: 'draft', summary, sections, basis, generatedAt },
     })
     return NextResponse.json(report)
   } catch (e) {

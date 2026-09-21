@@ -7,6 +7,7 @@ import {
   IconBulb, IconSpark, IconMoodBad, IconMood,
   IconMoodHappy, IconCheck, IconClose, IconPlus, IconMore,
 } from '../icons'
+import PageSkeleton from '../PageSkeleton'
 
 const TOOLS = [
   { t: 'B', pre: '**', suf: '**', ph: '加粗', cls: 'font-bold' },
@@ -41,7 +42,7 @@ export default function LogEditor() {
     [s, scope],
   )
 
-  if (!s) return <p className="text-faint text-[13px] p-6">加载中…</p>
+  if (!s) return <PageSkeleton type="logs" />
 
   const content = log?.content ?? ''
   const lines = content.split('\n')
@@ -97,6 +98,7 @@ export default function LogEditor() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           intent: 'logtips',
+          scope,
           title: log?.title || (scope === 'work' ? '今日工作日志' : '生活记录'),
           content,
         }),
@@ -244,7 +246,9 @@ export default function LogEditor() {
             placeholder={
               log
                 ? ''
-                : `${selDate} 还没有日志，在此输入即可自动创建…\n\n# 今日工作日志\n## 1. 主要工作\n- \n\n## 2. 遇到的问题\n- \n\n## 3. 明日计划\n- `
+                : scope === 'work'
+                  ? `${selDate} 还没有日志，在此输入即可自动创建…\n\n# 今日工作日志\n## 1. 主要工作\n- \n\n## 2. 遇到的问题\n- \n\n## 3. 明日计划\n- `
+                  : `${selDate} 还没有记录，在此输入即可自动创建…\n\n# 今日复盘\n## 1. 今日经历\n- \n\n## 2. 观察与感悟\n- \n\n## 3. 反思与改进\n- `
             }
             className="flex-1 min-h-0 bg-transparent px-4 py-4 font-mono text-[13px] leading-[1.75] text-[#d6e2ee] outline-none resize-none placeholder:text-faint/60"
             style={{ minHeight: `${lines.length * 23 + 32}px` }}
