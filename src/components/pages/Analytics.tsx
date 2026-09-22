@@ -110,24 +110,22 @@ export default function Analytics() {
 
             {/* 热力图网格 */}
             <div className="mt-5 flex gap-3">
-              <div className="flex flex-col justify-between py-1 text-[11px] text-faint font-mono shrink-0">
+              <div className="flex flex-col justify-between py-1 text-[11px] text-faint font-mono shrink-0 w-8">
                 {DAYS.map((d) => (
-                  <span key={d} className="leading-[17px]">
-                    {d}
-                  </span>
+                  <span key={d} className="leading-[17px]">{d}</span>
                 ))}
               </div>
 
-              <div className="flex gap-2 overflow-x-auto flex-1 pb-2">
+              <div className="flex flex-1 justify-between gap-2 overflow-x-auto pb-2">
                 {cols.map((col, i) => (
-                  <div key={i} className="flex flex-col gap-2">
+                  <div key={i} className="flex flex-1 min-w-[18px] flex-col gap-2">
                     {col.map((c) => (
                       <div
                         key={c.date}
                         title={`${c.date} · ${c.n} 次提交`}
                         onClick={() => setSelDate(selDate === c.date ? null : c.date)}
-                        className={`w-4 h-4 rounded-[4px] ${hmCls(c.n)} transition-all cursor-pointer ${
-                          selDate === c.date ? 'ring-2 ring-accent scale-110' : 'hover:scale-115'
+                        className={`w-full aspect-square min-w-4 rounded-[4px] ${hmCls(c.n)} transition-all cursor-pointer ${
+                          selDate === c.date ? 'ring-2 ring-accent scale-110' : 'hover:scale-110'
                         }`}
                       />
                     ))}
@@ -204,7 +202,11 @@ export default function Analytics() {
 
             <div className="mt-4 flex flex-col gap-4">
               {s.settings.languages.length === 0 && (
-                <p className="text-[12px] text-faint py-4 text-center">可在设置中配置主要语言与代码行统计</p>
+                <div className="rounded-xl border border-dashed border-line2 bg-inset/60 px-4 py-6 text-center">
+                  <div className="text-[13px] text-dim">还没有语言统计</div>
+                  <p className="text-[11.5px] text-faint mt-1.5 leading-relaxed">在设置中添加主要语言与代码行数，数据看板会自动生成占比。</p>
+                  <div className="mt-4 inline-flex items-center rounded-lg border border-line px-3 py-1.5 text-[11px] text-dim">前往设置配置</div>
+                </div>
               )}
               {s.settings.languages.map(([name, , lines]) => {
                 const color =
@@ -265,6 +267,9 @@ export default function Analytics() {
               value: '20:00 - 22:00',
               desc: '该时段的代码提交量占全天的 42%，建议在此时间集中处理复杂架构与核心业务任务。',
               foot: '相比其他时段 +68%',
+              value: '20:00 - 22:00',
+              desc: '该时段的代码提交量占全天的 42%，适合集中处理复杂架构与核心业务任务。',
+              foot: '相比其他时段 +68%',
               Icon: IconClock,
             },
             {
@@ -272,7 +277,9 @@ export default function Analytics() {
               badge: '开发重点',
               sub: '你主要的工作内容类型',
               value: '58% 新功能',
-              desc: '新功能开发占比 58%，其次是代码重构 22%，问题修复 12%。推进节奏稳健高效。',
+              desc: '新功能开发占比 58%，其次是代码重构 22%，问题修复 12%。',
+              foot: '新功能持续增长',
+              Icon: IconChart,
               foot: '新功能持续增长',
               Icon: IconChart,
             },
@@ -281,8 +288,9 @@ export default function Analytics() {
               badge: '较为频繁',
               sub: '平均每天切换的仓库数量',
               value: '3.4 个仓库/天',
-              desc: '你平均每天在 3.4 个仓库之间切换，建议合理规划专注工作块，减少频繁上下文切换。',
+              desc: '平均每天在 3.4 个仓库之间切换，建议规划专注工作块，减少上下文切换。',
               foot: '可通过工作区优化提升效率',
+              Icon: IconSpark,
               Icon: IconSpark,
             },
           ].map((c) => (

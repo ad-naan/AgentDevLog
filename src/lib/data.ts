@@ -20,7 +20,9 @@ export async function ensureUser() {
 /** 序列化：DB 行 → 客户端 DTO，组装完整应用状态 */
 export async function loadState(): Promise<AppState> {
   const userId = await ensureUser()
-  const [user, settings, logs, todos, activities, reports, breakdowns, commits] = await Promise.all([
+  // Use one database connection for the state snapshot. The hosted PostgreSQL
+  // instance has a small connection budget, so parallel reads can exhaust it.
+  const [user, settings, logs, todos, activities, reports, breakdowns, commits] = await prisma.$transaction([
     prisma.user.findUniqueOrThrow({ where: { id: userId } }),
     prisma.settings.findUniqueOrThrow({ where: { userId } }),
     prisma.log.findMany({ where: { userId }, orderBy: { updatedAt: 'desc' } }),
