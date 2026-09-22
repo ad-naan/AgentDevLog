@@ -2,12 +2,13 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useStore } from '../StoreProvider'
 import { useToast, apiError } from '../Toast'
 import { scopedActivities, todayStats, lastNDays, today, type ActivityDTO } from '@/lib/types'
 import {
   IconSpark, IconGitBranch, IconGitMerge, IconGitIssue,
-  IconFlame, IconArrow, IconLog, IconClock, IconTerminal,
+  IconFlame, IconArrow, IconLog, IconClock, IconTerminal, IconReport,
 } from '../icons'
 import PageSkeleton from '../PageSkeleton'
 
@@ -69,10 +70,12 @@ const QUICK_COMMANDS = [
 export default function Dashboard() {
   const { s, scope, api } = useStore()
   const toast = useToast()
+  const router = useRouter()
   const [input, setInput] = useState('')
   const [quickBusy, setQuickBusy] = useState(false)
   const [insight, setInsight] = useState<Insight | null>(null)
   const [insightBusy, setInsightBusy] = useState(false)
+  const [reportBusy, setReportBusy] = useState<'day' | 'week' | null>(null)
 
   // 基于状态的安全纯计算（避免在渲染函数中直接调用非纯 Date.now）
   const nowInfo = useMemo(() => {
@@ -153,6 +156,27 @@ export default function Dashboard() {
       toast('已基于日志、活动与待办生成最新洞察', 'info')
     } finally {
       setInsightBusy(false)
+    }
+  }
+
+  // 日报/周报生成：直接在工作台一键生成，成功后跳转报告中心查看
+  const genReport = async (period: 'day' | 'week') => {
+    if (reportBusy) return
+    setReportBusy(period)
+    try {
+      const res = await fetch('/api/reports/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope, period }),
+      })
+      if (!res.ok) {
+        toast(await apiError(res), 'error')
+        return
+      }
+      toast(period === 'day' ? '日报已生成，正在打开报告中心…' : '周报已生成，正在打开报告中心…', 'success')
+      router.push('/reports')
+    } finally {
+      setReportBusy(null)
     }
   }
 
@@ -266,6 +290,46 @@ export default function Dashboard() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* 报告生成入口（醒目常驻） */}
+        <div className="bg-card border border-line rounded-2xl p-4 flex flex-wrap items-center gap-3">
+          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${scope === 'work'
+            ? 'bg-[rgba(61,220,151,.12)] text-accent border-[rgba(61,220,151,.25)]'
+            : 'bg-[rgba(240,136,62,.12)] text-orange border-[rgba(240,136,62,.25)]'}`}>
+            <IconReport className="w-5 h-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[14px] font-semibold text-txt">报告中心 · 总结生成</div>
+            <div className="text-[12px] text-dim mt-0.5">
+              {scope === 'work'
+                ? '基于今日日志与全部提交内容（含改动文件）一键生成日报 / 上周周报'
+                : '基于今日记录一键生成生活复盘 / 一周成长复盘'}
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5 ml-auto shrink-0">
+            <button
+              disabled={reportBusy !== null}
+              onClick={() => genReport('day')}
+              className="px-4 py-2 rounded-xl text-[12.5px] font-semibold transition-all btn-press disabled:opacity-50 disabled:cursor-not-allowed border border-line text-dim hover:text-txt hover:border-line2 flex items-center gap-1.5"
+            >
+              <IconClock className="w-3.5 h-3.5" />
+              {reportBusy === 'day' ? '生成中…' : '生成日报'}
+            </button>
+            <button
+              disabled={reportBusy !== null}
+              onClick={() => genReport('week')}
+              className={`px-4 py-2 rounded-xl text-[12.5px] font-semibold transition-all btn-press disabled:opacity-50 disabled:cursor-not-allowed text-[#08120c] flex items-center gap-1.5 ${scope === 'work'
+                ? 'bg-accent hover:brightness-110'
+                : 'bg-orange hover:brightness-110'}`}
+            >
+              <IconReport className="w-3.5 h-3.5" />
+              {reportBusy === 'week' ? '生成中…' : '生成周报'}
+            </button>
+            <Link href="/reports" className="text-[12px] text-faint hover:text-dim transition-colors px-1">
+              历史报告 →
+            </Link>
+          </div>
         </div>
 
         {/* 今日动态（贯穿式时间轴设计） */}

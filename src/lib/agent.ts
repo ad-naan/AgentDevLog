@@ -199,7 +199,7 @@ export async function agentReport(
   scope: 'work' | 'life',
   basis: {
     logs: { title: string; content: string }[]
-    commits: { title: string; repo: string }[]
+    commits: { title: string; repo: string; detail?: string | null }[]
     prs: { title: string; repo: string }[]
     openTodos: string[]
   },
@@ -236,8 +236,8 @@ ${isWork
 日志：
 ${basis.logs.map((l) => `- ${l.title}: ${l.content}`).join('\n') || '（无）'}
 
-${isWork ? `Commits（${basis.commits.length} 条）：
-${basis.commits.slice(0, 10).map((c) => `- [${c.repo}] ${c.title}`).join('\n') || '（无）'}
+${isWork ? `Commits（${basis.commits.length} 条，附提交正文与改动文件清单，用于分析实际改动内容）：
+${basis.commits.slice(0, 15).map((c) => `- [${c.repo}] ${c.title}${c.detail ? `\n  ${c.detail.split('\n').map((l) => l.trim()).filter(Boolean).slice(0, 12).join('\n  ')}` : ''}`).join('\n') || '（无）'}
 
 PR 事件（${basis.prs.length} 条）：
 ${basis.prs.slice(0, 10).map((c) => `- [${c.repo}] ${c.title}`).join('\n') || '（无）'}
@@ -385,7 +385,7 @@ ${basis.openTodos.slice(0, 25).map((t) => `- ${t}`).join('\n') || '（无）'}`,
 各项目量化统计（真实数据）：
 ${basis.projects.map((p) => `- ${p.name}：${p.commits} 次 commit，${p.prs} 个 PR`).join('\n') || '（无）'}
 
-代表性提交/PR（仅供理解本周做了什么，务必翻译成业务语言、不要照抄）：
+代表性提交/PR（附提交正文与改动文件清单，据此理解实际改动内容，务必翻译成业务语言、不要照抄）：
 ${basis.projects.flatMap((p) => p.samples.slice(0, 12).map((s) => `- [${p.name}] ${s}`)).slice(0, 60).join('\n') || '（无）'}
 
 手动补充工作（git 无法记录的线下/本地工作，务必纳入并展开量化，${manual.length} 条）：

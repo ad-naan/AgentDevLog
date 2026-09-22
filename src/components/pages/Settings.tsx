@@ -46,7 +46,22 @@ export default function Settings() {
     await patch({ [key]: [...cur, r] })
     if (scope === 'work') setRepoInput('')
     else setRepoInputLife('')
-    setStatus(`已添加${scope === 'work' ? '工作' : '生活'}关注仓库 ${r}，点击「立即同步」拉取活动`)
+    // 添加后立即同步（自动回填最近 14 天活动），确保新仓库即刻被监控
+    setBusy(true)
+    setStatus(`已添加 ${r}，正在同步该仓库最近活动…`)
+    try {
+      const res = await fetch('/api/sync', { method: 'POST' })
+      const j = (await res.json()) as { fetched: number; errors: string[] }
+      await refresh()
+      setStatus(
+        j.errors.length
+          ? `已添加 ${r}；本次同步 ${j.fetched} 条活动，部分仓库失败：${j.errors.join('；')}`
+          : `已添加 ${r} 并完成监控，本次同步 ${j.fetched} 条真实活动`,
+      )
+    } catch {
+      setStatus(`已添加 ${r}，但同步失败，请稍后点击「立即同步」重试`)
+    }
+    setBusy(false)
   }
 
   const removeRepo = (r: string, scope: Scope) => {

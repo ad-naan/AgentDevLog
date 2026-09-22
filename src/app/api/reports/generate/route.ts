@@ -56,7 +56,10 @@ export async function POST(req: Request) {
         if (!p) byProject.set(key, (p = { name: key, commits: 0, prs: 0, samples: [] }))
         if (a.type === 'commit') {
           p.commits++
-          if (p.samples.length < 20) p.samples.push(a.title)
+          if (p.samples.length < 20) {
+            const d = a.desc ? a.desc.split('\n').map((x) => x.trim()).filter(Boolean).slice(0, 10).join('；') : ''
+            p.samples.push(d ? `${a.title}（${d.slice(0, 300)}）` : a.title)
+          }
         } else if (a.type === 'pr') {
           p.prs++
           p.samples.push(a.title)
@@ -101,7 +104,7 @@ export async function POST(req: Request) {
       prisma.todo.findMany({ where: { userId, scope } }),
     ])
 
-    const commits = acts.filter((a) => a.type === 'commit').map((a) => ({ title: a.title, repo: a.repo }))
+    const commits = acts.filter((a) => a.type === 'commit').map((a) => ({ title: a.title, repo: a.repo, detail: a.desc }))
     const prs = acts.filter((a) => a.type === 'pr').map((a) => ({ title: a.title, repo: a.repo }))
     const openTodos = todos.filter((x) => !x.done).map((x) => x.title)
 
