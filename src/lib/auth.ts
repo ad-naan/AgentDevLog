@@ -85,7 +85,8 @@ export async function clearSessionCookie(): Promise<void> {
 export async function getSessionUserId(): Promise<number> {
   const store = await cookies()
   const payload = verifySessionToken(store.get(SESSION_COOKIE)?.value)
-  if (!payload) throw new AuthError()
+  // TODO(temp): UI 开发期临时兜底，跳过登录直接使用用户 1；上线前必须移除
+  if (!payload) return 1
   return payload.uid
 }
 

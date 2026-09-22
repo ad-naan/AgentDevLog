@@ -11,9 +11,9 @@ import {
 import PageSkeleton from '../PageSkeleton'
 
 const P_CLS: Record<Priority, { badge: string; text: string }> = {
-  P0: { badge: 'bg-[rgba(248,81,73,.15)] border-[rgba(248,81,73,.3)] text-red', text: 'P0 紧急' },
-  P1: { badge: 'bg-[rgba(240,136,62,.15)] border-[rgba(240,136,62,.3)] text-orange', text: 'P1 高' },
-  P2: { badge: 'bg-[rgba(88,166,255,.15)] border-[rgba(88,166,255,.3)] text-blue', text: 'P2 中' },
+  P0: { badge: 'bg-[rgba(255,69,58,.1)] border-[rgba(255,69,58,.22)] text-red', text: 'P0 紧急' },
+  P1: { badge: 'bg-[rgba(255,159,10,.1)] border-[rgba(255,159,10,.22)] text-orange', text: 'P1 高' },
+  P2: { badge: 'bg-[rgba(10,132,255,.1)] border-[rgba(10,132,255,.22)] text-blue', text: 'P2 中' },
 }
 
 const SRC_CLS: Record<string, string> = {
@@ -127,7 +127,7 @@ function TaskCard({ t }: { t: TodoDTO }) {
             className={`px-2 py-px rounded-full text-[10.5px] font-medium ${
               t.scope === 'work'
       ? 'bg-accent/10 text-accent border border-accent/20'
-                : 'bg-[rgba(240,136,62,.12)] text-orange border border-[rgba(240,136,62,.2)]'
+                : 'bg-[rgba(255,159,10,.12)] text-orange border border-[rgba(255,159,10,.2)]'
             }`}>
             {t.scope === 'work' ? '工作' : '生活'}
           </span>
@@ -424,16 +424,16 @@ export default function TodoList() {
           </div>
         )}
 
-        {/* 筛选标签条 */}
-        <div className="flex gap-2 items-center flex-wrap">
+        {/* 筛选标签条：iOS 分段控件风格 */}
+        <div className="inline-flex items-center gap-0.5 p-0.5 rounded-full bg-inset border border-line">
           {(Object.keys(FILTER_LABEL) as Filter[]).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`btn-press text-[12px] px-3 py-1 rounded-full border transition-all duration-200 ${
+              className={`btn-press text-[12px] px-3.5 py-1.5 rounded-full transition-all duration-300 ${
                 filter === f
-      ? 'bg-accent text-[#04110b] border-transparent font-semibold shadow-[0_0_12px_color-mix(in_srgb,var(--color-accent)_30%,transparent)]'
-                  : 'border-line text-faint hover:text-dim hover:border-line2 bg-white/[0.02]'
+                  ? 'bg-white/[0.09] text-txt font-medium shadow-[0_1px_3px_rgba(0,0,0,.3)]'
+                  : 'text-faint hover:text-dim'
               }`}>
               {FILTER_LABEL[f]}
             </button>

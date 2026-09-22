@@ -179,7 +179,7 @@ export default function Breakdown() {
               rows={12}
               spellCheck={false}
               placeholder="粘贴需求描述、PRD 片段或用户故事，AI 将自动分析并建立模块任务树…"
-              className="w-full h-full min-h-[240px] bg-inset border border-line rounded-xl px-4 py-3 text-[13px] leading-relaxed font-sans outline-none focus:border-accent focus:shadow-[0_0_12px_rgba(61,220,151,.1)] resize-none"
+              className="w-full h-full min-h-[240px] bg-inset border border-line rounded-xl px-4 py-3 text-[13px] leading-relaxed font-sans outline-none focus:border-accent focus:shadow-[0_0_12px_rgba(52,199,89,0.06)] resize-none"
             />
             <div className="absolute right-3.5 bottom-3 text-[11px] font-mono text-faint">
               {bd.requirement.length}/2000
@@ -207,7 +207,7 @@ export default function Breakdown() {
                   disabled={bd.status === 'running'}
                   className={`btn-press p-3 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
                     active
-                      ? 'border-purple bg-[rgba(139,92,246,.14)] shadow-[0_0_14px_rgba(139,92,246,.25)]'
+                      ? 'border-purple bg-[rgba(139,92,246,.14)] shadow-[0_0_14px_rgba(139,92,246,0.13)]'
                       : 'border-line bg-inset hover:border-line2 text-dim'
                   }`}>
                   <div className="flex items-center justify-between w-full">
@@ -230,7 +230,7 @@ export default function Breakdown() {
           className={`btn-press w-full py-3 rounded-xl text-white text-[13.5px] font-semibold disabled:opacity-60 shadow-lg ${
             bd.status === 'running'
               ? 'ai-btn-busy'
-              : 'bg-gradient-to-r from-[#6D5EF0] to-[#4F7CF0] hover:shadow-[0_0_20px_rgba(109,94,240,.4)]'
+              : 'bg-gradient-to-r from-[#5e5ce6] to-[#0a84ff] hover:shadow-[0_0_20px_rgba(94,92,230,.22)]'
           }`}>
           {bd.status === 'running' ? '✦ AI 正在智能拆解中…' : '✦ 开始拆解 →'}
         </button>
@@ -270,7 +270,7 @@ export default function Breakdown() {
                 <div className="flex items-center gap-2">
                   <IconSpark className="w-4 h-4 text-purple" />
                   <b className="text-[14px]">AI 生成的任务树</b>
-                  <span className="text-[11px] text-accent bg-[rgba(61,220,151,.12)] border border-[rgba(61,220,151,.25)] px-2 py-0.5 rounded-full font-medium">
+                  <span className="text-[11px] text-accent bg-[rgba(52,199,89,.12)] border border-[rgba(52,199,89,.25)] px-2 py-0.5 rounded-full font-medium">
                     拆解完成
                   </span>
                 </div>
@@ -317,7 +317,7 @@ export default function Breakdown() {
                                   aria-label={isTaskChecked ? '取消' : '勾选'}
                                   className={`w-[16px] h-[16px] rounded-[4px] border flex items-center justify-center shrink-0 transition-all btn-press ${
                                     isTaskChecked
-                                      ? 'bg-accent border-accent text-[#04110b] shadow-[0_0_8px_rgba(61,220,151,.4)]'
+                                      ? 'bg-accent border-accent text-[#04110b] shadow-[0_0_8px_rgba(52,199,89,.4)]'
                                       : 'border-line2 group-hover:border-accent'
                                   }`}>
                                   {isTaskChecked && <IconCheck className="w-2.5 h-2.5" strokeWidth={2.8} />}
@@ -381,7 +381,7 @@ export default function Breakdown() {
                 <span className="text-[12px] text-dim font-medium">任务拆解进度</span>
                 <div className="w-28 h-2 rounded-full bg-inset overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-accent shadow-[0_0_8px_#3ddc97]"
+                    className="h-full rounded-full bg-accent shadow-[0_0_8px_#34c759]"
                     style={{ width: `${(selectedCount / Math.max(1, totalTasks)) * 100}%` }}
                   />
                 </div>
@@ -399,7 +399,7 @@ export default function Breakdown() {
                 <button
                   onClick={toTodos}
                   disabled={adopting || selectedCount === 0}
-                  className="btn-press px-4 py-2 rounded-xl bg-accent text-[#04110b] text-[12.5px] font-semibold hover:bg-accent-hover shadow-[0_0_14px_rgba(61,220,151,.35)] disabled:opacity-50 inline-flex items-center gap-1.5">
+                  className="btn-press px-4 py-2 rounded-xl bg-accent text-[#04110b] text-[12.5px] font-semibold hover:bg-accent-hover shadow-[0_0_14px_rgba(52,199,89,.2)] disabled:opacity-50 inline-flex items-center gap-1.5">
                   {adopting ? (
                     '正在转入…'
                   ) : (

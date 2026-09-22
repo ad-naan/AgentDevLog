@@ -319,7 +319,7 @@ export default function Settings() {
           <button
             onClick={saveLLM}
             disabled={llmBusy}
-            className="btn-press px-4 py-2 rounded-xl bg-gradient-to-r from-[#6D5EF0] to-[#4F7CF0] text-white text-[12.5px] font-semibold hover:shadow-[0_0_14px_rgba(109,94,240,.4)] disabled:opacity-50">
+            className="btn-press px-4 py-2 rounded-xl bg-gradient-to-r from-[#5e5ce6] to-[#0a84ff] text-white text-[12.5px] font-semibold hover:shadow-[0_0_14px_rgba(94,92,230,.22)] disabled:opacity-50">
             {llmBusy ? '测试中…' : '保存并测试连通'}
           </button>
         </div>

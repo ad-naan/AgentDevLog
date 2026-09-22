@@ -5,32 +5,44 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import {
   IconDashboard, IconLog, IconReport, IconCheck, IconSpark, IconChart,
-  IconGear, IconSearch, IconBriefcase, IconHome, IconTerminal, Logo, IconBell,
+  IconGear, IconSearch, IconBriefcase, IconHome, Logo, IconBell,
 } from './icons'
 import { useStore } from './StoreProvider'
-import Assistant from './Assistant'
 import CommandPalette, { useCommandPalette } from './CommandPalette'
 import type { Scope } from '@/lib/types'
 
-interface NavItem { href: string; label: string; path: string; icon: typeof IconDashboard }
+interface NavItem { href: string; label: string; icon: typeof IconDashboard }
 
-// 工作区导航：汇报视角，严谨
 const WORK_NAV: NavItem[] = [
-  { href: '/work', label: '工作台', path: '~/today', icon: IconDashboard },
-  { href: '/work/logs', label: '工作日志', path: '~/logs', icon: IconLog },
-  { href: '/work/reports', label: '报告中心', path: '~/reports', icon: IconReport },
-  { href: '/work/todos', label: 'TodoList', path: '~/todos', icon: IconCheck },
-  { href: '/work/breakdown', label: '需求拆解', path: '~/agent/req', icon: IconSpark },
-  { href: '/work/analytics', label: '数据看板', path: '~/insights', icon: IconChart },
+  { href: '/work', label: '工作台', icon: IconDashboard },
+  { href: '/work/logs', label: '工作日志', icon: IconLog },
+  { href: '/work/reports', label: '报告中心', icon: IconReport },
+  { href: '/work/todos', label: 'TodoList', icon: IconCheck },
+  { href: '/work/breakdown', label: '需求拆解', icon: IconSpark },
+  { href: '/work/analytics', label: '数据看板', icon: IconChart },
 ]
 
-// 生活区导航：日记视角，松弛
 const LIFE_NAV: NavItem[] = [
-  { href: '/life', label: '生活台', path: 'journal/today', icon: IconHome },
-  { href: '/life/logs', label: '日记本', path: 'journal/entries', icon: IconLog },
-  { href: '/life/todos', label: '小心愿', path: 'journal/wishes', icon: IconCheck },
-  { href: '/life/reports', label: '回忆册', path: 'journal/memories', icon: IconReport },
+  { href: '/life', label: '生活台', icon: IconHome },
+  { href: '/life/logs', label: '日记本', icon: IconLog },
+  { href: '/life/todos', label: '小心愿', icon: IconCheck },
+  { href: '/life/reports', label: '回忆册', icon: IconReport },
 ]
+
+const TITLES: Record<string, string> = {
+  '/work': '今天',
+  '/work/logs': '工作日志',
+  '/work/reports': '报告中心',
+  '/work/todos': '待办清单',
+  '/work/breakdown': '需求拆解',
+  '/work/analytics': '数据看板',
+  '/work/settings': '设置',
+  '/life': '今天',
+  '/life/logs': '日记本',
+  '/life/todos': '小心愿',
+  '/life/reports': '回忆册',
+  '/life/settings': '设置',
+}
 
 /** 从路径推导当前分区 */
 export function useZone(): Scope {
@@ -43,10 +55,10 @@ function ZoneSwitch({ zone }: { zone: Scope }) {
   return (
     <Link
       href={`/${other}`}
-      className={`flex items-center justify-center gap-1.5 mb-3 py-1.5 rounded-xl border text-[12px] font-medium transition-all duration-200 btn-press
+      className={`flex items-center justify-center gap-1.5 mb-3 py-1.5 rounded-xl border text-[12px] font-medium transition-all duration-300 btn-press
         ${zone === 'work'
-          ? 'border-[rgba(240,136,62,.25)] text-orange hover:bg-[rgba(240,136,62,.1)] hover:border-[rgba(240,136,62,.45)]'
-          : 'border-[rgba(61,220,151,.25)] text-accent hover:bg-[rgba(61,220,151,.1)] hover:border-[rgba(61,220,151,.45)]'}`}
+          ? 'border-orange/25 text-orange hover:bg-orange/10 hover:border-orange/45'
+          : 'border-accent/25 text-accent hover:bg-accent/10 hover:border-accent/45'}`}
     >
       {zone === 'work'
         ? <><IconHome className="w-3.5 h-3.5" />下班了 · 去生活</>
@@ -66,16 +78,16 @@ function Sidebar({ zone }: { zone: Scope }) {
   }
 
   return (
-    <aside className="w-[220px] shrink-0 bg-panel border-r border-line flex flex-col p-3.5 relative z-10 select-none">
-      {/* 顶部背景微光 */}
-      <div aria-hidden className="pointer-events-none absolute -top-24 -left-16 w-60 h-60 rounded-full opacity-[.09] sidebar-glow" />
+    <aside className="w-[220px] shrink-0 bg-panel/80 backdrop-blur-xl border-r border-line flex flex-col p-3.5 relative z-10 select-none">
+      {/* 顶部氛围光（极弱、静止） */}
+      <div aria-hidden className="pointer-events-none absolute -top-24 -left-16 w-60 h-60 rounded-full opacity-[.06] sidebar-glow" />
 
       {/* 品牌 Logo */}
       <Link href={zone === 'work' ? '/work' : '/life'} className="flex items-center gap-2.5 px-1 py-2 mb-2 group">
-        <Logo size={32} className="transition-transform duration-300 group-hover:scale-105" />
+        <Logo size={30} className="transition-transform duration-300 group-hover:scale-105" />
         <span className="flex flex-col">
-          <b className="text-[14.5px] font-bold leading-tight tracking-wide text-txt group-hover:text-accent transition-colors">devlog</b>
-          <span className="font-mono text-[9px] text-faint leading-tight tracking-wider uppercase">
+          <b className="text-[14.5px] font-semibold leading-tight tracking-tight text-txt transition-colors">devlog</b>
+          <span className="text-[9.5px] text-faint leading-tight tracking-widest uppercase">
             {zone === 'work' ? 'workspace' : 'journal'}
           </span>
         </span>
@@ -91,31 +103,28 @@ function Sidebar({ zone }: { zone: Scope }) {
             <Link
               key={n.href}
               href={n.href}
-              className={`group relative flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] w-full text-left transition-all duration-200
+              className={`group relative flex items-center gap-3 px-3 py-2 rounded-[10px] text-[13px] w-full text-left transition-all duration-300
                 ${on
-                  ? 'bg-accent/12 text-txt font-medium shadow-[inset_0_0_0_1px] shadow-accent/25'
+                  ? 'bg-[rgba(52,199,89,.1)] text-txt font-medium shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_1px_3px_rgba(0,0,0,.25)]'
                   : 'text-dim hover:bg-white/[0.04] hover:text-txt'}`}>
-              {on && <span className="absolute left-1 w-1 h-3.5 bg-accent rounded-full shadow-[0_0_8px_var(--color-accent)]" />}
+              {on && <span className="absolute left-0.5 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-accent rounded-full shadow-[0_0_8px_rgba(52,199,89,.5)]" />}
               <n.icon
                 width={16}
                 height={16}
-                className={`shrink-0 transition-all duration-200 ${on ? 'text-accent scale-105' : 'text-faint group-hover:text-dim group-hover:scale-105'}`}
+                className={`shrink-0 transition-colors duration-300 ${on ? 'text-accent' : 'text-faint group-hover:text-dim'}`}
               />
               <span className="flex-1 whitespace-nowrap">{n.label}</span>
-              <span className={`font-mono text-[9.5px] transition-opacity pointer-events-none ${on ? 'text-faint opacity-100' : 'opacity-0 group-hover:opacity-70 text-faint'}`}>
-                {n.path}
-              </span>
             </Link>
           )
         })}
 
         <Link
           href={`/${zone}/settings`}
-          className={`group relative flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] w-full text-left transition-all duration-200
+          className={`group relative flex items-center gap-3 px-3 py-2 rounded-[10px] text-[13px] w-full text-left transition-all duration-300
             ${path === `/${zone}/settings`
-              ? 'bg-accent/12 text-txt font-medium shadow-[inset_0_0_0_1px] shadow-accent/25'
+              ? 'bg-white/[0.08] text-txt font-medium shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_1px_3px_rgba(0,0,0,.25)]'
               : 'text-dim hover:bg-white/[0.04] hover:text-txt'}`}>
-          {path === `/${zone}/settings` && <span className="absolute left-1 w-1 h-3.5 bg-accent rounded-full shadow-[0_0_8px_var(--color-accent)]" />}
+          {path === `/${zone}/settings` && <span className="absolute left-1 w-1 h-3.5 bg-accent rounded-full" />}
           <IconGear
             width={16}
             height={16}
@@ -127,24 +136,24 @@ function Sidebar({ zone }: { zone: Scope }) {
 
       {/* 底部用户信息 */}
       <div className="mt-auto pt-3">
-        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-card-subtle border border-line transition-all hover:border-line2">
+        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-card-subtle border border-line transition-all duration-300 hover:border-line2">
           <div className="relative shrink-0">
             {s?.user.avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={s.user.avatar} alt="" className="w-8 h-8 rounded-full object-cover ring-1 ring-white/10" />
             ) : s ? (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#4A8CF7] to-[#6D5AE6] flex items-center justify-center text-[11px] font-bold text-white shadow-sm">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0a84ff] to-[#5e5ce6] flex items-center justify-center text-[11px] font-semibold text-white">
                 {(s.user.name || 'U').trim()[0]?.toUpperCase()}
               </div>
             ) : (
               <div className="skeleton w-8 h-8 rounded-full" />
             )}
-            {s && <span aria-hidden className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-accent border-2 border-card-subtle shadow-[0_0_8px_var(--color-accent)]" />}
+            {s && <span aria-hidden className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-accent border-2 border-panel" />}
           </div>
           <div className="min-w-0 flex-1">
             {s ? (
               <>
-                <b className="block text-[12px] font-semibold leading-tight truncate text-txt">{s.user.name}</b>
+                <b className="block text-[12px] font-medium leading-tight truncate text-txt">{s.user.name}</b>
                 <span className="block text-[10px] text-faint truncate mt-0.5">
                   {s.user.login ? `@${s.user.login}` : s.user.title}
                 </span>
@@ -169,21 +178,6 @@ function Sidebar({ zone }: { zone: Scope }) {
       </div>
     </aside>
   )
-}
-
-const TITLES: Record<string, string> = {
-  '/work': '~/devlog/today',
-  '/work/logs': '~/devlog/logs',
-  '/work/reports': '~/devlog/reports',
-  '/work/todos': '~/devlog/todos',
-  '/work/breakdown': '~/devlog/agent/requirements',
-  '/work/analytics': '~/devlog/insights',
-  '/work/settings': '~/devlog/settings',
-  '/life': 'journal · today',
-  '/life/logs': 'journal · entries',
-  '/life/todos': 'journal · wishes',
-  '/life/reports': 'journal · memories',
-  '/life/settings': 'journal · settings',
 }
 
 function TopBar({ zone, onOpenCmd }: { zone: Scope; onOpenCmd: () => void }) {
@@ -219,29 +213,26 @@ function TopBar({ zone, onOpenCmd }: { zone: Scope; onOpenCmd: () => void }) {
   }
 
   return (
-    <div className="h-[54px] shrink-0 border-b border-line flex items-center px-5 gap-3.5 bg-panel/95 backdrop-blur-md">
-      {/* 路径指示器：工作区终端风，生活区日记风 */}
-      <div className="flex items-center gap-2">
-        <IconTerminal className="text-accent shrink-0" width={15} height={15} />
-        <span className={`text-[12.5px] text-txt/90 font-medium ${zone === 'life' ? 'italic' : 'font-mono'}`}>
-          {TITLES[path] ?? (zone === 'work' ? '~/devlog' : 'journal')}
+    <div className="h-[54px] shrink-0 border-b border-line flex items-center px-5 gap-3.5 bg-panel/70 backdrop-blur-2xl">
+      {/* 页面标题 */}
+      <div className="flex items-center gap-2.5">
+        <span className={`text-[16px] font-semibold tracking-tight text-txt ${zone === 'life' ? 'italic' : ''}`}>
+          {TITLES[path] ?? 'devlog'}
         </span>
-        <span className="w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_6px_var(--color-accent)]" />
+        <span className={`text-[10.5px] px-2 py-0.5 rounded-full font-medium ${zone === 'work'
+          ? 'text-blue bg-blue/10'
+          : 'text-orange bg-orange/10'}`}>
+          {zone === 'work' ? '工作' : '生活'}
+        </span>
       </div>
 
-      <span className={`text-[11px] px-2.5 py-0.5 rounded-full border font-medium ${zone === 'work'
-        ? 'text-accent bg-accent/10 border-accent/25'
-        : 'text-orange bg-orange/10 border-orange/25'}`}>
-        {zone === 'work' ? '工作区' : '生活区'}
-      </span>
-
-      {/* 居中搜索胶囊（类似 Raycast / Linear） */}
+      {/* 居中搜索胶囊 */}
       <div className="mx-auto hidden md:block">
         <button
           onClick={onOpenCmd}
-          className="btn-press flex items-center gap-2.5 h-8 px-3.5 rounded-full bg-card border border-line hover:border-line2 text-faint hover:text-dim cursor-pointer w-[280px] transition-all shadow-sm">
+          className="btn-press flex items-center gap-2.5 h-8 px-3.5 rounded-full bg-card border border-line hover:border-line2 text-faint hover:text-dim cursor-pointer w-[280px] transition-all duration-300">
           <IconSearch width={13} height={13} className="shrink-0 text-faint" />
-          <span className="text-[12px] truncate flex-1 text-left">搜索任务、日记、文档...</span>
+          <span className="text-[12px] truncate flex-1 text-left">搜索任务、日记、文档…</span>
           <kbd className="text-[10px] font-mono text-faint border border-line rounded px-1.5 py-0.5 bg-black/20">⌘ K</kbd>
         </button>
       </div>
@@ -253,16 +244,16 @@ function TopBar({ zone, onOpenCmd }: { zone: Scope; onOpenCmd: () => void }) {
             onClick={doSync}
             disabled={syncing}
             title="点击立即同步 GitHub 活动"
-            className={`btn-press flex items-center gap-2 h-8 px-3 rounded-full border cursor-pointer transition-all ${synced
+            className={`btn-press flex items-center gap-2 h-8 px-3 rounded-full border cursor-pointer transition-all duration-300 ${synced
               ? 'bg-accent/8 border-accent/25 hover:border-accent/45'
               : 'bg-card border-line hover:border-line2'} disabled:cursor-wait`}>
             <svg viewBox="0 0 16 16" width={13.5} height={13.5} fill="currentColor" className={syncing ? 'animate-spin text-dim' : 'text-dim'}>
               <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
             </svg>
             <span className={`text-[11.5px] ${synced ? 'text-accent' : 'text-faint'}`}>
-              {syncing ? '同步中…' : synced ? `GitHub · ${syncAgo} 分钟前` : 'GitHub 未同步'}
+              {syncing ? '同步中…' : synced ? `${syncAgo} 分钟前` : '未同步'}
             </span>
-            {synced && !syncing && <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_6px_var(--color-accent)] pulse-dot" />}
+            {synced && !syncing && <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-accent pulse-dot" />}
           </button>
         )}
 
@@ -278,7 +269,7 @@ function TopBar({ zone, onOpenCmd }: { zone: Scope; onOpenCmd: () => void }) {
           aria-label="通知"
           className="btn-press relative w-8 h-8 rounded-full bg-card border border-line flex items-center justify-center text-dim hover:text-txt hover:border-line2">
           <IconBell width={14} height={14} />
-          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_6px_var(--color-accent)]" />
+          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-accent/80" />
         </button>
 
         {/* 设置快捷入口 */}
@@ -294,15 +285,17 @@ function TopBar({ zone, onOpenCmd }: { zone: Scope; onOpenCmd: () => void }) {
 }
 
 export default function Shell({ children }: { children: React.ReactNode }) {
-  const { open, setOpen } = useCommandPalette()
   const zone = useZone()
+  const { open, setOpen } = useCommandPalette()
+
   return (
-    <div className={`h-full flex bg-bg ${zone === 'life' ? 'zone-life' : 'zone-work'}`}>
-      <Sidebar zone={zone} />
-      <div className="flex-1 flex flex-col min-w-0">
-        <TopBar zone={zone} onOpenCmd={() => setOpen(true)} />
-        <main className="flex-1 min-h-0 overflow-y-auto p-5">{children}</main>
-        <Assistant />
+    <div className={`h-screen flex flex-col ${zone === 'life' ? 'zone-life' : ''}`}>
+      <div className="flex flex-1 min-h-0">
+        <Sidebar zone={zone} />
+        <main className="flex-1 min-w-0 flex flex-col">
+          <TopBar zone={zone} onOpenCmd={() => setOpen(true)} />
+          <div className="flex-1 min-h-0 overflow-y-auto main-area">{children}</div>
+        </main>
       </div>
       <CommandPalette open={open} onClose={() => setOpen(false)} />
     </div>

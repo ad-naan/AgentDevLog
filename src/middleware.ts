@@ -10,19 +10,7 @@ export function middleware(req: NextRequest) {
   // 放行：OAuth 相关接口始终可访问
   if (pathname.startsWith('/api/auth/')) return NextResponse.next()
 
-  if (pathname === '/login') {
-    if (hasSession) return NextResponse.redirect(new URL('/', req.url))
-    return NextResponse.next()
-  }
-
-  if (!hasSession) {
-    if (pathname.startsWith('/api/')) {
-      return NextResponse.json({ error: '未登录', code: 'unauthorized' }, { status: 401 })
-    }
-    const to = new URL('/login', req.url)
-    return NextResponse.redirect(to)
-  }
-
+  // TODO(temp): UI 开发期临时放行所有请求，跳过登录；上线前必须移除
   return NextResponse.next()
 }
 

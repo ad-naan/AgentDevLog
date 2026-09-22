@@ -363,9 +363,9 @@ export function Logo({ size = 34, className = '' }: { size?: number; className?:
       {/* 终端窗体 */}
       <rect x="4" y="8" width="40" height="32" rx="9" stroke="url(#lg-eye)" strokeWidth="2.4" />
       {/* 窗口状态灯（像眼睛的高光） */}
-      <circle cx="12.5" cy="15.5" r="1.6" fill="#3ddc97" />
-      <circle cx="17.5" cy="15.5" r="1.6" fill="#3ddc97" opacity=".45" />
-      <circle cx="22.5" cy="15.5" r="1.6" fill="#3ddc97" opacity=".2" />
+      <circle cx="12.5" cy="15.5" r="1.6" fill="#34c759" />
+      <circle cx="17.5" cy="15.5" r="1.6" fill="#34c759" opacity=".45" />
+      <circle cx="22.5" cy="15.5" r="1.6" fill="#34c759" opacity=".2" />
       {/* 提示符 › 作为眼瞳神韵 */}
       <path d="M14 24.5l5.5 4.5-5.5 4.5" stroke="#e6fff3" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
       {/* 呼吸光标 */}

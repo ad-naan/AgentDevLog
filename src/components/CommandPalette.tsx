@@ -139,7 +139,7 @@ function CommandPaletteModal({ onClose }: { onClose: () => void }) {
       aria-modal="true"
       aria-label="命令面板">
       <div
-        className="w-full max-w-[540px] rounded-2xl border border-line2 bg-[#0e141f] shadow-[0_24px_80px_-16px_rgba(0,0,0,.9),0_0_0_1px_rgba(61,220,151,.08)] cmd-pop overflow-hidden"
+        className="w-full max-w-[540px] rounded-2xl border border-line2 bg-[#0e141f] shadow-[0_24px_80px_-16px_rgba(0,0,0,.9),0_0_0_1px_rgba(52,199,89,.08)] cmd-pop overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={onKey}>
         <div className="flex items-center gap-3 px-4.5 h-[52px] border-b border-line bg-inset/30">
@@ -174,12 +174,12 @@ function CommandPaletteModal({ onClose }: { onClose: () => void }) {
                 onClick={() => c.run()}
                 onMouseEnter={() => setSel(i)}
                 className={`w-full flex items-center gap-3.5 px-4.5 py-2.5 text-left transition-colors cursor-pointer ${
-                  isSelected ? 'bg-[rgba(61,220,151,.12)]' : 'hover:bg-white/[0.02]'
+                  isSelected ? 'bg-[rgba(52,199,89,.12)]' : 'hover:bg-white/[0.02]'
                 }`}>
                 <span
                   className={`w-8 h-8 rounded-xl flex items-center justify-center border transition-all ${
                     isSelected
-                      ? 'border-[rgba(61,220,151,.35)] text-accent bg-[rgba(61,220,151,.1)]'
+                      ? 'border-[rgba(52,199,89,.35)] text-accent bg-[rgba(52,199,89,.1)]'
                       : 'border-line text-faint bg-[#111823]'
                   }`}>
                   <c.icon width={15} height={15} />

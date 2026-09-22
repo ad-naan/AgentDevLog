@@ -19,13 +19,22 @@ interface Insight {
 }
 
 // 平滑贝塞尔曲线微图表 (Sparkline)
-const Spark = ({ data, color = '#3ddc97' }: { data: number[]; color?: string }) => {
+const Spark = ({ data, color = '#34c759' }: { data: number[]; color?: string }) => {
   const max = Math.max(...data, 1)
   const w = 72, h = 24
   const pts = data.map((v, i) => [
     2 + (i / Math.max(1, data.length - 1)) * (w - 4),
     h - 3 - (v / max) * (h - 7),
   ] as const)
+
+  // 空数据：渲染虚线基线，避免孤立折线的「假数据感」
+  if (data.every((v) => v === 0)) {
+    return (
+      <svg viewBox={`0 0 ${w} ${h}`} className="w-18 h-6" fill="none">
+        <line x1="2" y1={h - 3} x2={w - 2} y2={h - 3} stroke="rgba(255,255,255,.14)" strokeWidth="1.4" strokeDasharray="3 3" strokeLinecap="round" />
+      </svg>
+    )
+  }
 
   if (pts.length < 2) return null
   // 生成平滑三阶贝塞尔路径
@@ -46,10 +55,10 @@ const Spark = ({ data, color = '#3ddc97' }: { data: number[]; color?: string }) 
 }
 
 const TYPE_STYLE: Record<string, { label: string; Icon: typeof IconLog; ic: string; dot: string; tc: string }> = {
-  log: { label: '工作日志', Icon: IconLog, ic: 'bg-[rgba(61,220,151,.15)] text-accent', dot: 'bg-accent', tc: 'text-accent' },
-  commit: { label: 'Commit', Icon: IconGitBranch, ic: 'bg-[rgba(61,220,151,.15)] text-accent', dot: 'bg-accent', tc: 'text-accent' },
-  pr: { label: 'PR', Icon: IconGitMerge, ic: 'bg-[rgba(88,166,255,.15)] text-blue', dot: 'bg-blue', tc: 'text-blue' },
-  issue: { label: 'Issue', Icon: IconGitIssue, ic: 'bg-[rgba(188,140,255,.15)] text-purple', dot: 'bg-purple', tc: 'text-purple' },
+  log: { label: '工作日志', Icon: IconLog, ic: 'bg-white/[0.05] text-dim', dot: 'bg-accent', tc: 'text-dim' },
+  commit: { label: 'Commit', Icon: IconGitBranch, ic: 'bg-white/[0.05] text-dim', dot: 'bg-accent', tc: 'text-dim' },
+  pr: { label: 'PR', Icon: IconGitMerge, ic: 'bg-white/[0.05] text-dim', dot: 'bg-blue', tc: 'text-dim' },
+  issue: { label: 'Issue', Icon: IconGitIssue, ic: 'bg-white/[0.05] text-dim', dot: 'bg-purple', tc: 'text-dim' },
 }
 
 const feedHref = (f: ActivityDTO): { href: string; external: boolean } => {
@@ -199,8 +208,8 @@ export default function Dashboard() {
             <div className="text-[11.5px] text-faint flex items-center justify-end gap-1.5 mt-0.5">
               <span>{nowInfo.dayStr}</span>
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${scope === 'work'
-                ? 'bg-[rgba(61,220,151,.14)] text-accent border border-[rgba(61,220,151,.25)]'
-                : 'bg-[rgba(240,136,62,.14)] text-orange border border-[rgba(240,136,62,.25)]'}`}>
+                ? 'bg-[rgba(52,199,89,.14)] text-accent border border-[rgba(52,199,89,.25)]'
+                : 'bg-[rgba(255,159,10,.14)] text-orange border border-[rgba(255,159,10,.25)]'}`}>
                 今天
               </span>
             </div>
@@ -213,58 +222,58 @@ export default function Dashboard() {
             ? [
                 {
                   icon: IconGitBranch,
-                  bg: 'bg-[rgba(61,220,151,.12)] text-accent border-[rgba(61,220,151,.25)]',
+                  bg: 'bg-[rgba(52,199,89,.12)] text-accent border-[rgba(52,199,89,.25)]',
                   n: stats.commits,
                   sub: 'commits today',
-                  tag: `↑ +${Math.max(1, stats.commits)} 较昨日`,
-                  color: '#3ddc97',
+                  tag: `今日 ${stats.commits} 次提交`,
+                  color: '#34c759',
                   series: commitSeries,
                 },
                 {
                   icon: IconGitMerge,
-                  bg: 'bg-[rgba(88,166,255,.12)] text-blue border-[rgba(88,166,255,.25)]',
+                  bg: 'bg-[rgba(10,132,255,.12)] text-blue border-[rgba(10,132,255,.25)]',
                   n: stats.prs,
                   sub: 'PRs merged',
-                  tag: `↑ +${stats.prs > 0 ? stats.prs : 1} 较昨日`,
-                  color: '#58a6ff',
+                  tag: '累计已合并 PR',
+                  color: '#0a84ff',
                   series: prSeries,
                 },
                 {
                   icon: IconFlame,
-                  bg: 'bg-[rgba(167,139,250,.12)] text-purple border-[rgba(167,139,250,.25)]',
+                  bg: 'bg-[rgba(191,90,242,.12)] text-purple border-[rgba(191,90,242,.25)]',
                   n: stats.streak,
                   sub: 'day streak',
                   tag: `连续 ${stats.streak} 天`,
-                  color: '#a78bfa',
+                  color: '#bf5af2',
                   series: commitSeries,
                 },
               ]
             : [
                 {
                   icon: IconGitBranch,
-                  bg: 'bg-[rgba(240,136,62,.12)] text-orange border-[rgba(240,136,62,.25)]',
+                  bg: 'bg-[rgba(255,159,10,.12)] text-orange border-[rgba(255,159,10,.25)]',
                   n: feed.filter((f) => new Date(f.ts).toISOString().slice(0, 10) === today()).length,
                   sub: '今日记录',
                   tag: '持续记录积累',
-                  color: '#f0883e',
+                  color: '#ff9f0a',
                   series: commitSeries,
                 },
                 {
                   icon: IconGitMerge,
-                  bg: 'bg-[rgba(88,166,255,.12)] text-blue border-[rgba(88,166,255,.25)]',
+                  bg: 'bg-[rgba(10,132,255,.12)] text-blue border-[rgba(10,132,255,.25)]',
                   n: s.logs.filter((l) => l.scope === 'life').length,
                   sub: '累计记录',
                   tag: '定期复盘输出',
-                  color: '#58a6ff',
+                  color: '#0a84ff',
                   series: commitSeries,
                 },
                 {
                   icon: IconFlame,
-                  bg: 'bg-[rgba(167,139,250,.12)] text-purple border-[rgba(167,139,250,.25)]',
+                  bg: 'bg-[rgba(191,90,242,.12)] text-purple border-[rgba(191,90,242,.25)]',
                   n: stats.streak,
                   sub: '连续记录天数',
                   tag: `连续 ${stats.streak} 天`,
-                  color: '#a78bfa',
+                  color: '#bf5af2',
                   series: commitSeries,
                 },
               ]
@@ -276,9 +285,6 @@ export default function Dashboard() {
                 <div className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-transform group-hover:scale-105 ${c.bg}`}>
                   <c.icon className="w-4.5 h-4.5" />
                 </div>
-                <span className="text-[11px] font-mono text-faint px-2 py-0.5 rounded-full bg-white/[0.03] border border-line">
-                  {c.tag}
-                </span>
               </div>
               <div className="mt-3">
                 <div className="font-mono text-[28px] font-bold leading-none tracking-tight text-txt">{c.n}</div>
@@ -295,8 +301,8 @@ export default function Dashboard() {
         {/* 报告生成入口（醒目常驻） */}
         <div className="bg-card border border-line rounded-2xl p-4 flex flex-wrap items-center gap-3">
           <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${scope === 'work'
-            ? 'bg-[rgba(61,220,151,.12)] text-accent border-[rgba(61,220,151,.25)]'
-            : 'bg-[rgba(240,136,62,.12)] text-orange border-[rgba(240,136,62,.25)]'}`}>
+            ? 'bg-[rgba(52,199,89,.12)] text-accent border-[rgba(52,199,89,.25)]'
+            : 'bg-[rgba(255,159,10,.12)] text-orange border-[rgba(255,159,10,.25)]'}`}>
             <IconReport className="w-5 h-5" />
           </div>
           <div className="min-w-0 flex-1">
@@ -417,11 +423,6 @@ export default function Dashboard() {
                                 {f.meta}
                               </span>
                             )}
-                            {f.type === 'log' && (
-                              <span className="text-[10.5px] text-accent font-mono bg-[rgba(61,220,151,.08)] border border-[rgba(61,220,151,.2)] px-2 py-0.5 rounded-full">
-                                #工作日志
-                              </span>
-                            )}
                           </div>
                         </div>
                       </div>
@@ -478,7 +479,7 @@ export default function Dashboard() {
               onClick={() => submit()}
               disabled={quickBusy || !input.trim()}
               aria-label="发送记录"
-              className="btn-press w-8 h-8 rounded-xl bg-accent text-[#04110b] flex items-center justify-center hover:bg-accent-hover shadow-[0_0_12px_rgba(61,220,151,.3)] disabled:opacity-50 disabled:shadow-none">
+              className="btn-press w-8 h-8 rounded-xl bg-accent text-[#04110b] flex items-center justify-center hover:bg-accent-hover shadow-[0_0_12px_rgba(52,199,89,0.15)] disabled:opacity-50 disabled:shadow-none">
               {quickBusy ? (
                 <span className="w-3.5 h-3.5 border-2 border-[#04110b]/30 border-t-[#04110b] rounded-full animate-spin" />
               ) : (

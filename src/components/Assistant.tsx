@@ -72,7 +72,7 @@ export default function Assistant() {
           open ? 'rotate-90 bg-[#1e2535] text-txt shadow-xl' : ''
         } ${
           llmOn
-            ? 'bg-gradient-to-br from-[#6D5EF0] to-[#4F7CF0] text-white shadow-[0_0_24px_rgba(109,94,240,.55)] hover:shadow-[0_0_32px_rgba(109,94,240,.75)]'
+            ? 'bg-gradient-to-br from-[#5e5ce6] to-[#0a84ff] text-white shadow-[0_0_24px_rgba(94,92,230,.3)] hover:shadow-[0_0_32px_rgba(94,92,230,.4)]'
             : 'bg-[#121826] border border-line text-faint hover:text-txt shadow-lg'
         }`}>
         <IconSpark className="w-5.5 h-5.5" />
@@ -93,7 +93,7 @@ export default function Assistant() {
             <span
               className={`ml-auto text-[10px] px-2 py-0.5 rounded-full font-medium ${
                 llmOn
-                  ? 'bg-[rgba(61,220,151,.12)] text-accent border border-[rgba(61,220,151,.25)]'
+                  ? 'bg-[rgba(52,199,89,.12)] text-accent border border-[rgba(52,199,89,.25)]'
                   : 'bg-white/[0.04] text-faint border border-line'
               }`}>
               {llmOn ? 'LLM 已连接' : '未配置 LLM'}
@@ -170,7 +170,7 @@ export default function Assistant() {
               <button
                 onClick={() => send()}
                 disabled={busy || !llmOn || !input.trim()}
-                className="btn-press px-4 py-2 rounded-xl bg-gradient-to-r from-[#6D5EF0] to-[#4F7CF0] text-white text-[12.5px] font-semibold disabled:opacity-50 hover:shadow-[0_0_12px_rgba(109,94,240,.4)] transition-all">
+                className="btn-press px-4 py-2 rounded-xl bg-gradient-to-r from-[#5e5ce6] to-[#0a84ff] text-white text-[12.5px] font-semibold disabled:opacity-50 hover:shadow-[0_0_12px_rgba(94,92,230,.22)] transition-all">
                 发送
               </button>
             </div>

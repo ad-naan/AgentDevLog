@@ -117,7 +117,7 @@ export default function Reports() {
             onClick={() => generate('day')}
             disabled={busy}
             className={`btn-press px-5 py-2.5 rounded-xl text-white text-[13px] font-semibold disabled:opacity-60 shadow-lg ${
-              busy ? 'ai-btn-busy' : 'bg-gradient-to-r from-[#6D5EF0] to-[#4F7CF0]'
+              busy ? 'ai-btn-busy' : 'bg-gradient-to-r from-[#5e5ce6] to-[#0a84ff]'
             }`}>
             {busy ? '✦ AI 正在生成中…' : isWork ? '✦ 生成今日日报' : '✦ 生成今日复盘'}
           </button>
@@ -197,13 +197,13 @@ export default function Reports() {
                   <span
                     className={`ml-auto text-[10px] px-2 py-0.5 rounded-full font-medium ${
                       x.status === 'draft'
-                        ? 'bg-[rgba(167,139,250,.15)] text-purple border border-[rgba(167,139,250,.25)]'
+                        ? 'bg-[rgba(191,90,242,.15)] text-purple border border-[rgba(191,90,242,.25)]'
       : 'bg-accent/15 text-accent border border-accent/25'
                     }`}>
                     {x.status === 'draft' ? 'AI 起草' : '已确认'}
                   </span>
                 </div>
-                <div className="text-[11.5px] text-faint truncate mt-1 pl-5">{x.summary}</div>
+                <div className="text-[11.5px] text-dim/70 truncate mt-1 pl-5">{x.summary}</div>
               </button>
             )
           })}
@@ -267,16 +267,16 @@ export default function Reports() {
               </h1>
               <div className="flex items-center gap-2 mt-2 text-[12px] text-faint font-mono">
                 <span>基于</span>
-                <span className="text-accent font-bold">{r.basis.logs} 条日志</span>
+                <span className="text-dim font-medium">{r.basis.logs} 条日志</span>
                 <span>+</span>
-                <span className="text-blue font-bold">{r.basis.commits} commits</span>
+                <span className="text-dim font-medium">{r.basis.commits} commits</span>
                 <span>+</span>
-                <span className="text-purple font-bold">{r.basis.prs} PRs</span>
+                <span className="text-dim font-medium">{r.basis.prs} PRs</span>
               </div>
             </div>
 
             {/* 四象限卡片内容网格 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5 flex-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5 flex-1 items-start">
               {sections.map(({ title, Icon, color, dot, items }) => (
                 <div
                   key={title}
@@ -318,12 +318,12 @@ export default function Reports() {
         {/* 底部 AI 悬浮操作底栏（高度还原 design/e32f7db2） */}
         <div className="ai-bar rounded-2xl px-5 py-4 flex items-center justify-between gap-4 shadow-xl">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6D5EF0] to-[#4F7CF0] flex items-center justify-center text-white shrink-0 shadow-[0_0_12px_rgba(109,94,240,.5)]">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#5e5ce6] to-[#0a84ff] flex items-center justify-center text-white shrink-0 shadow-[0_0_12px_rgba(94,92,230,0.26)]">
               <IconSpark className="w-4 h-4" />
             </div>
             <div className="min-w-0">
               <b className="text-[12.5px] text-txt block">AI 正在持续学习你的工作节奏，让日报更懂你。</b>
-              <span className="text-[11px] text-faint truncate block">
+              <span className="text-[11px] text-dim truncate block">
                 基于你的真实日志、代码提交与待办数据，提供更精准的高级总结与建议。
               </span>
             </div>

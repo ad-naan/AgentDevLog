@@ -383,7 +383,7 @@ export default function LogEditor() {
             {log?.tags.map((t) => (
               <span
                 key={t}
-                className="text-[11px] font-mono text-blue bg-[rgba(88,166,255,.1)] border border-[rgba(88,166,255,.25)] px-2 py-0.5 rounded-full flex items-center gap-1">
+                className="text-[11px] font-mono text-blue bg-[rgba(10,132,255,.1)] border border-[rgba(10,132,255,.25)] px-2 py-0.5 rounded-full flex items-center gap-1">
                 #{t}
                 <button
                   onClick={() =>
@@ -549,7 +549,7 @@ export default function LogEditor() {
           <button
             onClick={genTips}
             disabled={aiLoading}
-            className="btn-press mt-1 w-full py-2.5 rounded-xl text-[13px] font-semibold text-white bg-gradient-to-r from-[#6D5EF0] to-[#4F7CF0] disabled:opacity-60 inline-flex items-center justify-center gap-2 hover:shadow-[0_0_16px_rgba(109,94,240,.4)] transition-all">
+            className="btn-press mt-1 w-full py-2.5 rounded-xl text-[13px] font-semibold text-white bg-gradient-to-r from-[#5e5ce6] to-[#0a84ff] disabled:opacity-60 inline-flex items-center justify-center gap-2 hover:shadow-[0_0_16px_rgba(94,92,230,.4)] transition-all">
             <IconSpark className="w-4 h-4" />
             {aiLoading ? '正在分析…' : tips.length ? '采纳建议 / 重新生成' : '生成 AI 建议'}
           </button>

@@ -16,7 +16,7 @@ const hmCls = (n: number) =>
     : n < 6
     ? 'bg-[#2d6a4f]'
     : n < 10
-    ? 'bg-[#3ddc97] shadow-[0_0_6px_rgba(61,220,151,.5)]'
+    ? 'bg-[#34c759] shadow-[0_0_6px_rgba(52,199,89,.5)]'
     : 'bg-[#74c69d] shadow-[0_0_10px_rgba(116,198,157,.8)]'
 
 export default function Analytics() {
@@ -188,7 +188,7 @@ export default function Analytics() {
               <span>中等提交</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-3.5 h-3.5 rounded-[3px] bg-[#3ddc97] inline-block" />
+              <span className="w-3.5 h-3.5 rounded-[3px] bg-[#34c759] inline-block" />
               <span>大量提交</span>
             </div>
           </div>
@@ -209,14 +209,14 @@ export default function Analytics() {
               {s.settings.languages.map(([name, , lines]) => {
                 const color =
                   name === 'TypeScript'
-                    ? '#58a6ff'
+                    ? '#0a84ff'
                     : name === 'Rust'
-                    ? '#f0883e'
+                    ? '#ff9f0a'
                     : name === 'Python'
-                    ? '#3ddc97'
+                    ? '#34c759'
                     : name === 'JavaScript'
                     ? '#e3b341'
-                    : '#a78bfa'
+                    : '#bf5af2'
                 const pct = Math.round((lines / langTotal) * 100)
                 return (
                   <div key={name}>
@@ -304,7 +304,7 @@ export default function Analytics() {
                 <div className="text-[11.5px] text-faint mt-1.5">{c.sub}</div>
 
                 {/* 突出展示框 */}
-                <div className="text-center py-3.5 my-3 rounded-xl bg-[rgba(139,92,246,.1)] border border-[rgba(139,92,246,.3)] shadow-[0_0_20px_rgba(139,92,246,.15)]">
+                <div className="text-center py-3.5 my-3 rounded-xl bg-[rgba(139,92,246,.1)] border border-[rgba(139,92,246,.3)] shadow-[0_0_20px_rgba(139,92,246,0.08)]">
                   <span className="text-[20px] text-purple font-mono font-bold tracking-wide">
                     {c.value}
                   </span>

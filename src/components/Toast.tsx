@@ -19,9 +19,9 @@ interface ToastValue {
 const Ctx = createContext<ToastValue>({ toast: () => {} })
 
 const STYLE: Record<ToastKind, { icon: string; border: string; iconColor: string }> = {
-  success: { icon: '✓', border: 'border-[rgba(61,220,151,.45)]', iconColor: 'text-accent' },
+  success: { icon: '✓', border: 'border-[rgba(52,199,89,.45)]', iconColor: 'text-accent' },
   error: { icon: '✕', border: 'border-[rgba(248,81,73,.5)]', iconColor: 'text-red' },
-  info: { icon: '✦', border: 'border-[rgba(167,139,250,.45)]', iconColor: 'text-purple' },
+  info: { icon: '✦', border: 'border-[rgba(191,90,242,.45)]', iconColor: 'text-purple' },
 }
 
 let nextId = 1
