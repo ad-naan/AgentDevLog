@@ -17,8 +17,8 @@ interface EventItem {
 interface BranchItem { name: string }
 interface CommitListItem {
   sha: string
-  commit?: { message?: string; author?: { date?: string } }
-  author?: { login?: string }
+  commit?: { message?: string; author?: { date?: string; name?: string; email?: string } }
+  author?: { login?: string } | null
 }
 interface CommitDetail {
   files?: { filename?: string; status?: string; additions?: number; deletions?: number }[]
@@ -93,7 +93,8 @@ export async function syncGithub(userId: number) {
   }
   if (settings.githubToken) headers.Authorization = `Bearer ${settings.githubToken}`
   const ghUser = settings.githubUser.trim().toLowerCase()
-  const since = new Date(Math.max(settings.lastSync.getTime(), Date.now() - 14 * 864e5))
+  // since = 上次同步时间（留 10 分钟重叠窗口防时钟偏差/同步期间推送），但不早于 14 天前
+  const since = new Date(Math.max(settings.lastSync.getTime() - 10 * 60e3, Date.now() - 14 * 864e5))
   const sinceISO = since.toISOString()
 
   const errors: string[] = []
@@ -120,14 +121,26 @@ export async function syncGithub(userId: number) {
   const newCommits: NewCommit[] = []
 
   await mapLimit(repos, 6, async ([repo, scope]) => {
-    // PR/Issue 事件与分支列表并行获取
+    // PR/Issue 事件与分支列表并行获取（分支翻页，最多 300 条）
     const [events, branches] = await Promise.all([
       gh<EventItem[]>(`${GH}/repos/${repo}/events?per_page=100`, headers),
-      gh<BranchItem[]>(`${GH}/repos/${repo}/branches?per_page=100`, headers),
+      (async () => {
+        const all: BranchItem[] = []
+        for (let p = 1; p <= 3; p++) {
+          const page = await gh<BranchItem[]>(`${GH}/repos/${repo}/branches?per_page=100&page=${p}`, headers)
+          if (!page) return all.length ? all : null
+          all.push(...page)
+          if (page.length < 100) break
+        }
+        return all
+      })(),
     ])
     if (!events && !branches) {
       errors.push(`${repo}: 无法访问（检查仓库名/Token 权限）`)
       return
+    }
+    if (!branches) {
+      errors.push(`${repo}: 分支列表获取失败（可能被限流），本次未同步该仓库提交`)
     }
 
     // ── PR / Issue 事件 ──
@@ -170,18 +183,29 @@ export async function syncGithub(userId: number) {
 
     // ── 全分支 commit 同步 ──
     const branchNames = (branches || []).map((b) => b.name).filter(Boolean).slice(0, 12)
-    const lists = await mapLimit(branchNames, 6, (b) =>
-      gh<CommitListItem[]>(
-        `${GH}/repos/${repo}/commits?sha=${encodeURIComponent(b)}&since=${sinceISO}&per_page=100`,
-        headers,
-      ),
-    )
+    const lists = await mapLimit(branchNames, 6, async (b) => {
+      // 翻页取最近 3 页（300 条），避免窗口内提交超过 100 条被截断
+      const all: CommitListItem[] = []
+      for (let p = 1; p <= 3; p++) {
+        const page = await gh<CommitListItem[]>(
+          `${GH}/repos/${repo}/commits?sha=${encodeURIComponent(b)}&since=${sinceISO}&per_page=100&page=${p}`,
+          headers,
+        )
+        if (!page) break
+        all.push(...page)
+        if (page.length < 100) break
+      }
+      return all
+    })
     // 跨分支按 sha 去重后收集新增 commit
     const seen = new Set<string>()
     const candidates: { sha: string; ts: Date; message: string }[] = []
     for (const list of lists) {
       for (const c of list || []) {
-        if (ghUser && (c.author?.login || '').toLowerCase() !== ghUser) continue
+        // 作者过滤：跳过明确关联了「其他账号」的提交（协作仓库里同事的提交）；
+        // author 为 null（git 邮箱未绑定 GitHub 账号）的提交保留，否则会漏掉
+        const login = c.author?.login?.toLowerCase()
+        if (ghUser && login && login !== ghUser) continue
         const ts = new Date(c.commit?.author?.date || Date.now())
         if (ts < since || seen.has(c.sha)) continue
         seen.add(c.sha)
