@@ -22,52 +22,102 @@ export interface AssistantResult {
   actions: string[]
 }
 
-export async function runAssistant(
+// ─── ⑤ 工作台助手：tool-calling agent loop ───
+// 每轮让模型在「调用一个工具」或「直接回答」之间决策，工具结果回灌给模型，
+// 最多 6 步。模型可以自主组合多个工具（如：查日志 → 查待办 → 生成报告）。
+
+export interface AssistantTurn {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface AssistantResult {
+  reply: string
+  actions: string[]
+}
+
+const PERSONA = {
+  work: '你是工作分区的 AI 助理，面向进度跟踪与向上汇报。回答偏向：进展、交付价值、风险与下一步计划。',
+  life: '你是生活分区的 AI 助理，面向复盘与个人成长。语气温和，回答偏向：感受、经验提炼、习惯与改进。',
+} as const
+
+const TOOL_DOC = `你可以使用以下工具（每次调用一个）：
+- query_logs {"days":7} — 查询最近 N 天的日志（含正文）
+- query_todos {"includeDone":false} — 查询待办（可选包含已完成）
+- query_activities {"days":7} — 查询最近 N 天的代码提交/PR/Issue/记录动态
+- create_todo {"title":"...","priority":"P1|P2|P3","due":"今天|明天|本周|无","tag":"..."} — 创建一条待办
+- append_log {"title":"..."} — 往今日日志追加一条记录
+- generate_report {"kind":"daily|weekly"} — 基于真实数据生成日报/周报并保存到报告中心
+- breakdown {"requirement":"..."} — 把一段需求拆解为模块与任务并保存
+
+输出规则（只输出一个 JSON 对象）：
+- 要调用工具：{"tool":"工具名","args":{...}}
+- 信息足够、可以回答了：{"reply":"面向用户的中文回答"}
+
+策略：
+- 涉及「我做了什么/进展如何/总结一下」等问题，先用查询工具拿真实数据再回答，不要凭空编造。
+- 用户要求记录/创建/生成时直接调用相应工具；复杂请求可连续组合多个工具。
+- 写操作完成后要在 reply 里简要确认。`
+
+interface ToolOutcome { observation: string; action?: string }
+
+async function executeTool(
   userId: number,
   scope: 'work' | 'life',
-  turns: AssistantTurn[],
-): Promise<AssistantResult> {
-  const last = turns[turns.length - 1]?.content?.trim() || ''
-  if (!last) return { reply: '请输入内容。', actions: [] }
+  tool: string,
+  args: Record<string, unknown>,
+): Promise<ToolOutcome> {
+  const days = Math.min(Math.max(Number(args.days) || 7, 1), 60)
+  const sinceDay = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10)
+  const sinceTs = new Date(Date.now() - days * 864e5)
 
-  // 第一步：意图识别（一次轻量 JSON 调用）
-  const cfg = await requireLLMConfig(userId)
-  const route = await chatJSON<{ intent: string }>(
-    cfg,
-    [
-      { role: 'system', content: '你是意图分类器，只输出 JSON。' },
-      {
-        role: 'user',
-        content: `把用户请求分类为一个 intent，取值：
-- "todo"：要创建/记录一条待办事项
-- "log"：要往今日日志追加一条记录
-- "report"：要生成日报/周报/总结
-- "breakdown"：要把一段需求拆解为任务
-- "chat"：其他对话/提问
-
-输出格式：{"intent":"..."}
-
-用户请求：${last.slice(0, 500)}`,
-      },
-    ],
-    (p) => {
-      const o = p as Record<string, unknown>
-      const ok = ['todo', 'log', 'report', 'breakdown', 'chat']
-      return { intent: ok.includes(String(o.intent)) ? String(o.intent) : 'chat' }
-    },
-    { temperature: 0 },
-  )
-
-  const actions: string[] = []
-  try {
-    if (route.intent === 'todo' || route.intent === 'log') {
-      const r = await agentQuickCapture(userId, last, scope)
-      actions.push(r.kind === 'todo'
-        ? `已创建待办「${r.title}」（${r.priority} · ${r.due}）`
-        : `已追加到今日日志：「${r.title}」`)
-      return { reply: `好的，${r.reason}。${actions[0]}。`, actions }
+  switch (tool) {
+    case 'query_logs': {
+      const logs = await prisma.log.findMany({
+        where: { userId, scope, date: { gte: sinceDay } },
+        orderBy: { date: 'desc' }, take: 30,
+      })
+      return {
+        observation: logs.length
+          ? logs.map((l) => `【${l.date}】${l.title}\n${l.content.slice(0, 500)}`).join('\n\n')
+          : '（该时间范围内没有日志）',
+      }
     }
-    if (route.intent === 'report') {
+    case 'query_todos': {
+      const todos = await prisma.todo.findMany({
+        where: { userId, scope, ...(args.includeDone ? {} : { done: false }) },
+        orderBy: [{ done: 'asc' }, { createdAt: 'desc' }], take: 50,
+      })
+      return {
+        observation: todos.length
+          ? todos.map((t) => `${t.done ? '[x]' : '[ ]'} ${t.priority} ${t.title}（${t.due}${t.tag ? ` · ${t.tag}` : ''}）`).join('\n')
+          : '（没有符合条件的待办）',
+      }
+    }
+    case 'query_activities': {
+      const acts = await prisma.activity.findMany({
+        where: { userId, scope, ts: { gte: sinceTs } },
+        orderBy: { ts: 'desc' }, take: 100,
+      })
+      return {
+        observation: acts.length
+          ? acts.map((a) => `${a.ts.toISOString().slice(0, 16)} [${a.type}] ${a.title}${a.repo ? ` @${a.repo}` : ''}`).join('\n')
+          : '（该时间范围内没有动态）',
+      }
+    }
+    case 'create_todo': {
+      const r = await agentQuickCapture(userId, String(args.title || ''), scope)
+      return r.kind === 'todo'
+        ? { observation: `已创建待办「${r.title}」（${r.priority} · ${r.due}）`, action: `已创建待办「${r.title}」（${r.priority} · ${r.due}）` }
+        : { observation: `已作为日志记录：「${r.title}」`, action: `已追加到今日日志：「${r.title}」` }
+    }
+    case 'append_log': {
+      const r = await agentQuickCapture(userId, String(args.title || ''), scope)
+      return r.kind === 'log'
+        ? { observation: `已追加到今日日志：「${r.title}」`, action: `已追加到今日日志：「${r.title}」` }
+        : { observation: `已创建待办「${r.title}」（${r.priority} · ${r.due}）`, action: `已创建待办「${r.title}」（${r.priority} · ${r.due}）` }
+    }
+    case 'generate_report': {
       const t0 = today()
       const since = new Date(Date.now() - 7 * 864e5)
       const [logs, acts, todos] = await Promise.all([
@@ -81,47 +131,109 @@ export async function runAssistant(
         prs: acts.filter((a) => a.type === 'pr').map((a) => ({ title: a.title, repo: a.repo })),
         openTodos: todos.map((t) => `${t.priority} ${t.title}`),
       })
-      actions.push('已生成报告（报告中心可查看）')
-      return { reply: r.summary, actions }
-    }
-    if (route.intent === 'breakdown') {
-      const r = await agentBreakdown(userId, last, '标准')
-      const total = r.modules.reduce((n, m) => n + m.tasks.length, 0)
-      const created = await prisma.breakdown.create({
-        data: {
-          userId, requirement: last.slice(0, 500), mode: '标准', status: 'done',
-          modules: r.modules, tech: r.tech,
-        },
-      })
-      actions.push(`已拆解 ${r.modules.length} 个模块 / ${total} 个任务（需求拆解页可查看 #${created.id}）`)
       return {
-        reply: `拆解完成：${r.modules.map((m) => `${m.name}（${m.tasks.length} 项）`).join('、')}。技术方案 ${r.tech.length} 条，已保存到需求拆解页。`,
-        actions,
+        observation: `报告已生成并保存到报告中心。摘要：${r.summary}`,
+        action: '已生成报告（报告中心可查看）',
       }
     }
-  } catch (e) {
-    if (e instanceof LLMNotConfiguredError) throw e
-    // 工具执行失败 → 降级为对话，不让整个请求 500
-    return { reply: `执行时遇到问题：${e instanceof Error ? e.message : '未知错误'}。可以换个说法再试，或直接到对应页面操作。`, actions: [] }
+    case 'breakdown': {
+      const requirement = String(args.requirement || '').slice(0, 500)
+      if (!requirement) return { observation: '（requirement 参数为空，无法拆解）' }
+      const r = await agentBreakdown(userId, requirement, '标准')
+      const total = r.modules.reduce((n, m) => n + m.tasks.length, 0)
+      const created = await prisma.breakdown.create({
+        data: { userId, requirement, mode: '标准', status: 'done', modules: r.modules, tech: r.tech },
+      })
+      return {
+        observation: `拆解完成：${r.modules.map((m) => `${m.name}（${m.tasks.length} 项）`).join('、')}，共 ${total} 个任务，已保存 #${created.id}`,
+        action: `已拆解 ${r.modules.length} 个模块 / ${total} 个任务（需求拆解页 #${created.id}）`,
+      }
+    }
+    default:
+      return { observation: `（未知工具 ${tool}，可用工具见规则说明）` }
+  }
+}
+
+const TOOL_NAMES = [
+  'query_logs', 'query_todos', 'query_activities',
+  'create_todo', 'append_log', 'generate_report', 'breakdown',
+] as const
+
+export async function runAssistant(
+  userId: number,
+  scope: 'work' | 'life',
+  turns: AssistantTurn[],
+): Promise<AssistantResult> {
+  const last = turns[turns.length - 1]?.content?.trim() || ''
+  if (!last) return { reply: '请输入内容。', actions: [] }
+
+  const cfg = await requireLLMConfig(userId)
+  const ctx = await assistantContext(userId, scope)
+  const actions: string[] = []
+
+  const system = `${PERSONA[scope]}简洁中文回答。\n\n用户近况（背景，工具可查更完整数据）：\n${ctx}\n\n${TOOL_DOC}`
+
+  // 消息序列：system + 最近对话 + 逐步追加的工具调用记录
+  const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
+    { role: 'system', content: system },
+    ...turns.slice(-8).map((t) => ({ role: t.role, content: t.content.slice(0, 1000) })),
+  ]
+
+  const MAX_STEPS = 6
+  for (let step = 0; step < MAX_STEPS; step++) {
+    const isFinal = step === MAX_STEPS - 1
+    const decision = await chatJSON<{ tool?: string; args?: unknown; reply?: string }>(
+      cfg,
+      [
+        ...messages,
+        {
+          role: 'user',
+          content: isFinal
+            ? '（已达工具调用次数上限，请基于已有信息直接回答，输出 {"reply":"..."}）'
+            : '（输出 {"tool":"...","args":{...}} 调用工具，或 {"reply":"..."} 直接回答）',
+        },
+      ],
+      (p) => {
+        const o = p as Record<string, unknown>
+        if (typeof o.reply === 'string' && o.reply) return { reply: o.reply }
+        const tool = String(o.tool || '')
+        if ((TOOL_NAMES as readonly string[]).includes(tool)) {
+          return {
+            tool,
+            args: (o.args && typeof o.args === 'object' ? o.args : {}) as Record<string, unknown>,
+          }
+        }
+        return null
+      },
+      { temperature: 0.3 },
+    )
+
+    if (decision.reply) return { reply: decision.reply, actions }
+
+    // 执行工具并把结果回灌
+    let outcome: ToolOutcome
+    try {
+      outcome = await executeTool(
+        userId,
+        scope,
+        decision.tool!,
+        (decision.args && typeof decision.args === 'object' ? decision.args : {}) as Record<string, unknown>,
+      )
+    } catch (e) {
+      if (e instanceof LLMNotConfiguredError) throw e
+      outcome = { observation: `工具执行失败：${e instanceof Error ? e.message : '未知错误'}` }
+    }
+    if (outcome.action) actions.push(outcome.action)
+    messages.push({ role: 'assistant', content: JSON.stringify({ tool: decision.tool, args: decision.args }) })
+    messages.push({ role: 'user', content: `工具结果：\n${outcome.observation.slice(0, 4000)}` })
   }
 
-  // chat：带上下文的普通对话
-  const ctx = await assistantContext(userId, scope)
-  const r = await chatJSON<{ reply: string }>(
-    cfg,
-    [
-      { role: 'system', content: `你是 devlog 工作台的 AI 助手${scope === 'work' ? '（当前为工作分区：面向向上汇报与交付，回答偏向进展、价值与风险）' : '（当前为生活分区：面向自我复盘与成长，回答偏向感受、经验与改进，语气温和'}。简洁中文回答。可以用以下用户近况作为背景：\n${ctx}` },
-      ...turns.slice(-8).map((t) => ({ role: t.role, content: t.content.slice(0, 1000) })),
-      // 追加一个约束轮，确保输出 JSON
-      { role: 'user', content: '（请以 {"reply":"..."} 的 JSON 格式回答上一条）' },
-    ],
-    (p) => {
-      const o = p as Record<string, unknown>
-      return { reply: typeof o.reply === 'string' && o.reply ? o.reply : '（模型未返回内容）' }
-    },
-    { temperature: 0.5 },
-  )
-  return { reply: r.reply, actions: [] }
+  return {
+    reply: actions.length
+      ? `已完成：${actions.join('；')}。`
+      : '（多次调用工具后未能生成回答，请稍后重试）',
+    actions,
+  }
 }
 
 async function assistantContext(userId: number, scope: 'work' | 'life'): Promise<string> {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../StoreProvider'
 import { scopedActivities, today } from '@/lib/types'
 import {
@@ -8,6 +8,53 @@ import {
   IconMoodHappy, IconCheck, IconClose, IconPlus, IconMore,
 } from '../icons'
 import PageSkeleton from '../PageSkeleton'
+
+// 生活区日记形式：不止复盘，随笔/好事/心情/一句话都可以
+const LIFE_TEMPLATES = [
+  {
+    name: '自由随笔',
+    emoji: '🌿',
+    tpl: '# 随笔\n\n想到什么写什么，不用结构，不用完整。\n\n',
+  },
+  {
+    name: '三件好事',
+    emoji: '☀️',
+    tpl: '# 今日三件好事\n\n1. \n2. \n3. \n\n为什么发生在今天：\n- ',
+  },
+  {
+    name: '心情日记',
+    emoji: '🌦️',
+    tpl: '# 今日心情\n\n**此刻的感受**：\n\n**发生了什么**：\n\n**我想对自己说**：\n',
+  },
+  {
+    name: '一句话日记',
+    emoji: '✏️',
+    tpl: '# 一句话\n\n',
+  },
+  {
+    name: '结构复盘',
+    emoji: '🔁',
+    tpl: '# 今日复盘\n## 1. 今日经历\n- \n\n## 2. 观察与感悟\n- \n\n## 3. 反思与改进\n- ',
+  },
+] as const
+
+// 今日灵感一问：按日期轮换
+const PROMPTS = [
+  '今天有什么瞬间让你觉得"还不错"?',
+  '最近哪件小事悄悄消耗了你?',
+  '如果今天只能留下一张照片，会拍什么?',
+  '最近对什么重新产生了好奇?',
+  '今天身体感觉怎么样?累在哪里?',
+  '有什么想放下但还没放下的?',
+  '这个周末最想为自己做的一件事?',
+  '最近一次开怀大笑是因为什么?',
+] as const
+
+const promptOfDay = (date: string) => {
+  let h = 0
+  for (const c of date) h = (h * 31 + c.charCodeAt(0)) % 997
+  return PROMPTS[h % PROMPTS.length]
+}
 
 const TOOLS = [
   { t: 'B', pre: '**', suf: '**', ph: '加粗', cls: 'font-bold' },
@@ -23,11 +70,25 @@ export default function LogEditor() {
   const [newTag, setNewTag] = useState('')
   const [newDate, setNewDate] = useState('')
   const taRef = useRef<HTMLTextAreaElement>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const log = useMemo(
     () => s?.logs.find((l) => l.date === selDate && l.scope === scope),
     [s, selDate, scope],
   )
+
+  // 本地草稿：切换日期/分区时同步一次；编辑期间不被服务端回写打断
+  const [draft, setDraft] = useState('')
+  const [dirty, setDirty] = useState(false)
+  const serverContent = log?.content ?? ''
+  useEffect(() => {
+    setDraft(serverContent)
+    setDirty(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selDate, scope])
+  useEffect(() => {
+    if (!dirty) setDraft(serverContent)
+  }, [serverContent, dirty])
   const history = useMemo(
     () => (s ? s.logs.filter((l) => l.scope === scope).slice().sort((a, b) => b.date.localeCompare(a.date)) : []),
     [s, scope],
@@ -42,13 +103,28 @@ export default function LogEditor() {
     [s, scope],
   )
 
+  // 卸载兜底：清理防抖定时器（必须位于早退 return 之前，保证 Hook 顺序稳定）
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current)
+  }, [])
+
   if (!s) return <PageSkeleton type="logs" />
 
-  const content = log?.content ?? ''
-  const lines = content.split('\n')
+  const lines = draft.split('\n')
   const savedAt = log ? new Date(log.updatedAt).toTimeString().slice(0, 5) : ''
 
-  const save = (v: string) => {
+  const applyTemplate = (tpl: string) => {
+    save(draft ? `${draft}\n\n${tpl}` : tpl)
+    requestAnimationFrame(() => {
+      const el = taRef.current
+      if (!el) return
+      el.focus()
+      el.setSelectionRange(el.value.length, el.value.length)
+    })
+  }
+
+  // 防抖持久化：先更新本地草稿，停止输入 600ms 后再落库，避免每键一次请求
+  const persist = (v: string) => {
     if (!log) {
       api('/api/logs', {
         method: 'POST',
@@ -62,6 +138,16 @@ export default function LogEditor() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content: v }),
     })
+  }
+
+  const save = (v: string) => {
+    setDraft(v)
+    setDirty(true)
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => {
+      setDirty(false)
+      persist(v)
+    }, 600)
   }
 
   const applyWrap = (pre: string, suf: string, ph: string) => {
@@ -100,7 +186,7 @@ export default function LogEditor() {
           intent: 'logtips',
           scope,
           title: log?.title || (scope === 'work' ? '今日工作日志' : '生活记录'),
-          content,
+          content: draft,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -175,7 +261,7 @@ export default function LogEditor() {
               onClick={() => setSelDate(l.date)}
               className={`text-left px-3 py-2 rounded-xl transition-all ${
                 l.date === selDate
-                  ? 'bg-[rgba(61,220,151,.14)] text-accent font-medium shadow-[inset_0_0_0_1px_rgba(61,220,151,.25)]'
+      ? 'bg-accent/15 text-accent font-medium shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-accent)_25%,transparent)]'
                   : 'text-dim hover:bg-white/[0.03] hover:text-txt'
               }`}>
               <b className="block text-[11.5px] font-mono leading-tight">
@@ -196,7 +282,7 @@ export default function LogEditor() {
           />
           <button
             onClick={createFor}
-            className="btn-press w-full py-1.5 rounded-lg text-[12px] font-semibold text-[#04110b] bg-accent hover:bg-accent-hover inline-flex items-center justify-center gap-1.5 shadow-[0_0_10px_rgba(61,220,151,.3)]">
+          className="btn-press w-full py-1.5 rounded-lg text-[12px] font-semibold text-[#04110b] bg-accent hover:bg-accent-hover inline-flex items-center justify-center gap-1.5 shadow-[0_0_10px_color-mix(in_srgb,var(--color-accent)_30%,transparent)]">
             <IconPlus className="w-3.5 h-3.5" />新建日志
           </button>
         </div>
@@ -229,18 +315,39 @@ export default function LogEditor() {
           </div>
         </div>
 
+        {/* 生活区：选择今天的日记形式（空内容时展示） */}
+        {scope === 'life' && !draft && (
+          <div className="px-4 pt-3.5 pb-1 flex flex-col gap-2 border-b border-line/60 bg-accent/[0.03]">
+            <div className="flex items-center gap-2 text-[11.5px] text-dim">
+              <span className="text-accent">✦</span>
+              <span>今天想怎么记？选一种开始，或直接开写</span>
+              <span className="ml-auto italic text-faint">今日一问：{promptOfDay(selDate)}</span>
+            </div>
+            <div className="flex items-center gap-1.5 flex-wrap pb-2.5">
+              {LIFE_TEMPLATES.map((t) => (
+                <button
+                  key={t.name}
+                  onClick={() => applyTemplate(t.tpl)}
+                  className="btn-press px-3 py-1.5 rounded-full border border-line bg-card text-[12px] text-dim hover:text-accent hover:border-accent/40 hover:bg-accent/10 transition-all">
+                  {t.emoji} {t.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* 编辑区域：极简行号与等宽代码 */}
         <div className="flex-1 min-h-0 flex overflow-y-auto">
           <div
             aria-hidden
-            className="select-none text-right px-3.5 py-4 font-mono text-[12px] leading-[1.75] text-[#3d4757] shrink-0 border-r border-line/60">
+            className="select-none text-right px-3.5 py-4 font-mono text-[12px] leading-[1.75] text-faint/60 shrink-0 border-r border-line/60">
             {lines.map((_, i) => (
               <div key={i}>{i + 1}</div>
             ))}
           </div>
           <textarea
             ref={taRef}
-            value={content}
+            value={draft}
             onChange={(e) => save(e.target.value)}
             spellCheck={false}
             placeholder={
@@ -248,9 +355,9 @@ export default function LogEditor() {
                 ? ''
                 : scope === 'work'
                   ? `${selDate} 还没有日志，在此输入即可自动创建…\n\n# 今日工作日志\n## 1. 主要工作\n- \n\n## 2. 遇到的问题\n- \n\n## 3. 明日计划\n- `
-                  : `${selDate} 还没有记录，在此输入即可自动创建…\n\n# 今日复盘\n## 1. 今日经历\n- \n\n## 2. 观察与感悟\n- \n\n## 3. 反思与改进\n- `
+                  : `${selDate} · 想到什么就写什么，一个字也算记录…\n\n今日一问：${promptOfDay(selDate)}`
             }
-            className="flex-1 min-h-0 bg-transparent px-4 py-4 font-mono text-[13px] leading-[1.75] text-[#d6e2ee] outline-none resize-none placeholder:text-faint/60"
+            className="flex-1 min-h-0 bg-transparent px-4 py-4 font-mono text-[13px] leading-[1.75] text-txt outline-none resize-none placeholder:text-faint/60"
             style={{ minHeight: `${lines.length * 23 + 32}px` }}
           />
         </div>
@@ -319,7 +426,7 @@ export default function LogEditor() {
                   aria-label={`心情 ${m}`}
                   className={`w-7 h-7 rounded-lg border inline-flex items-center justify-center transition-all hover:scale-110 ${
                     log.mood === m
-                      ? 'border-accent text-accent bg-[rgba(61,220,151,.15)] shadow-[0_0_10px_rgba(61,220,151,.35)]'
+      ? 'border-accent text-accent bg-accent/15 shadow-[0_0_10px_color-mix(in_srgb,var(--color-accent)_35%,transparent)]'
                       : 'border-line text-faint hover:text-dim'
                   }`}>
                   <E className="w-3.5 h-3.5" />
@@ -349,13 +456,13 @@ export default function LogEditor() {
                 <label
                   key={a.id}
                   className={`flex gap-3 items-start rounded-xl px-3 py-2.5 cursor-pointer transition-all ${
-                    isChecked ? 'bg-[rgba(61,220,151,.06)] border border-[rgba(61,220,151,.2)]' : 'hover:bg-white/[0.02] border border-transparent'
+                    isChecked ? 'bg-accent/5 border border-accent/20' : 'hover:bg-black/[0.02] border border-transparent'
                   }`}>
                   <input
                     type="checkbox"
                     checked={isChecked}
                     onChange={() => toggleLink(String(a.id))}
-                    className="mt-1 accent-[#3ddc97] w-4 h-4 rounded"
+          className="mt-1 accent-accent w-4 h-4 rounded"
                   />
                   <div className="min-w-0 flex-1">
                     <b className={`block text-[12.5px] truncate font-medium ${a.type === 'pr' ? 'text-blue' : 'text-txt'}`}>

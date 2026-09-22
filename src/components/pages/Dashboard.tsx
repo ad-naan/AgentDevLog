@@ -53,8 +53,8 @@ const TYPE_STYLE: Record<string, { label: string; Icon: typeof IconLog; ic: stri
 }
 
 const feedHref = (f: ActivityDTO): { href: string; external: boolean } => {
-  if (f.type === 'log') return { href: '/logs', external: false }
-  if (!f.repo.includes('/')) return { href: '/analytics', external: false }
+  if (f.type === 'log') return { href: '/work/logs', external: false }
+  if (!f.repo.includes('/')) return { href: '/work/analytics', external: false }
   if (f.type === 'commit') return { href: `https://github.com/${f.repo}/commits`, external: true }
   if (f.type === 'pr') return { href: `https://github.com/${f.repo}/pulls`, external: true }
   return { href: `https://github.com/${f.repo}/issues`, external: true }
@@ -174,7 +174,7 @@ export default function Dashboard() {
         return
       }
       toast(period === 'day' ? '日报已生成，正在打开报告中心…' : '周报已生成，正在打开报告中心…', 'success')
-      router.push('/reports')
+      router.push('/work/reports')
     } finally {
       setReportBusy(null)
     }
@@ -326,7 +326,7 @@ export default function Dashboard() {
               <IconReport className="w-3.5 h-3.5" />
               {reportBusy === 'week' ? '生成中…' : '生成周报'}
             </button>
-            <Link href="/reports" className="text-[12px] text-faint hover:text-dim transition-colors px-1">
+            <Link href="/work/reports" className="text-[12px] text-faint hover:text-dim transition-colors px-1">
               历史报告 →
             </Link>
           </div>
@@ -342,7 +342,7 @@ export default function Dashboard() {
             </span>
             <div className="ml-auto flex items-center gap-3">
               <span className="text-[11.5px] text-faint font-mono">{feed.length} 条</span>
-              <Link href="/logs" className="text-[11.5px] text-dim hover:text-accent transition-colors flex items-center gap-1">
+              <Link href="/work/logs" className="text-[11.5px] text-dim hover:text-accent transition-colors flex items-center gap-1">
                 查看全部 <span className="text-[10px]">→</span>
               </Link>
             </div>
@@ -561,7 +561,7 @@ export default function Dashboard() {
         <div className="bg-card border border-line rounded-2xl p-4">
           <div className="flex items-center justify-between mb-2.5">
             <b className="text-[13px]">待办概览</b>
-            <Link href="/todos" className="text-[11px] text-faint hover:text-dim font-mono">
+            <Link href="/work/todos" className="text-[11px] text-faint hover:text-dim font-mono">
               前往 TodoList ›
             </Link>
           </div>
@@ -583,7 +583,7 @@ export default function Dashboard() {
 
         {/* GitHub 同步状态小卡片 */}
         <Link
-          href="/settings"
+          href="/work/settings"
           className="bg-card border border-line rounded-2xl px-4 py-3.5 flex items-center gap-3 hover:border-line2 transition-colors group">
           <div className="w-8 h-8 rounded-xl bg-white/[0.04] border border-line flex items-center justify-center text-txt shrink-0">
             <svg viewBox="0 0 16 16" width={18} height={18} fill="currentColor">

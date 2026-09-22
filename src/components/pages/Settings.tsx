@@ -19,6 +19,8 @@ export default function Settings() {
   const [llmBaseUrl, setLlmBaseUrl] = useState('')
   const [llmModel, setLlmModel] = useState('')
   const [llmApiKey, setLlmApiKey] = useState('')
+  const [workStart, setWorkStart] = useState('')
+  const [workEnd, setWorkEnd] = useState('')
   const [llmBusy, setLlmBusy] = useState(false)
   const [llmStatus, setLlmStatus] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
@@ -120,7 +122,7 @@ export default function Settings() {
         </div>
         <div>
           <h1 className="text-[22px] font-bold text-txt">工作台设置</h1>
-          <p className="text-[13px] text-dim mt-0.5">配置个人资料、关注仓库、默认分区与 AI 模型服务</p>
+          <p className="text-[13px] text-dim mt-0.5">配置个人资料、工作时段、关注仓库与 AI 模型服务</p>
         </div>
       </div>
 
@@ -148,37 +150,42 @@ export default function Settings() {
         </div>
         <button
           onClick={saveProfile}
-          className="btn-press mt-4 px-4 py-2 rounded-xl bg-accent text-[#04110b] text-[12.5px] font-semibold hover:bg-accent-hover shadow-[0_0_12px_rgba(61,220,151,.3)]">
+          className="btn-press mt-4 px-4 py-2 rounded-xl bg-accent text-[#04110b] text-[12.5px] font-semibold hover:bg-accent-hover shadow-[0_0_12px_color-mix(in_srgb,var(--color-accent)_30%,transparent)]">
           保存个人信息
         </button>
       </section>
 
-      {/* 分区偏好 */}
+      {/* 工作时段 */}
       <section className="bg-card border border-line rounded-2xl p-5 shadow-sm">
-        <h2 className="text-[15px] font-bold text-txt mb-1">默认视图分区</h2>
+        <h2 className="text-[15px] font-bold text-txt mb-1">工作时段</h2>
         <p className="text-[12px] text-dim mb-4">
-          每条日志、待办与活动都归属一个分区；在此设置新建内容的默认初始分区。
+          打开应用时，处于工作时段内自动进入工作区，之外自动进入生活区（按本机时间判断）。
         </p>
-        <div className="flex gap-2.5">
-          {(
-            [
-              ['work', '工作分区'],
-              ['life', '生活分区'],
-            ] as [Scope, string][]
-          ).map(([k, l]) => (
-            <button
-              key={k}
-              onClick={() => patch({ defaultScope: k })}
-              className={`btn-press px-4 py-2 rounded-xl text-[13px] font-medium border transition-all cursor-pointer ${
-                s.settings.defaultScope === k
-                  ? k === 'work'
-                    ? 'border-accent bg-[rgba(61,220,151,.12)] text-accent shadow-[0_0_12px_rgba(61,220,151,.25)]'
-                    : 'border-orange bg-[rgba(240,136,62,.12)] text-orange shadow-[0_0_12px_rgba(240,136,62,.25)]'
-                  : 'border-line text-dim hover:text-txt bg-inset'
-              }`}>
-              {l}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2">
+            <span className="text-[12px] text-dim font-medium">上班</span>
+            <input
+              type="time"
+              value={workStart || s.settings.workStart}
+              onChange={(e) => setWorkStart(e.target.value)}
+              className="bg-inset border border-line rounded-xl px-3 py-1.5 text-[13px] outline-none focus:border-accent transition-colors font-mono"
+            />
+          </label>
+          <span className="text-faint">→</span>
+          <label className="flex items-center gap-2">
+            <span className="text-[12px] text-dim font-medium">下班</span>
+            <input
+              type="time"
+              value={workEnd || s.settings.workEnd}
+              onChange={(e) => setWorkEnd(e.target.value)}
+              className="bg-inset border border-line rounded-xl px-3 py-1.5 text-[13px] outline-none focus:border-accent transition-colors font-mono"
+            />
+          </label>
+          <button
+            onClick={() => patch({ workStart: workStart || s.settings.workStart, workEnd: workEnd || s.settings.workEnd })}
+            className="btn-press px-4 py-2 rounded-xl bg-accent/12 border border-accent/30 text-accent text-[12.5px] font-semibold hover:bg-accent/20 transition-all">
+            保存时段
+          </button>
         </div>
       </section>
 
@@ -354,7 +361,7 @@ export default function Settings() {
           <button
             onClick={doSync}
             disabled={busy}
-            className="btn-press px-4 py-2 rounded-xl bg-accent text-[#04110b] text-[12.5px] font-semibold hover:bg-accent-hover disabled:opacity-50 shadow-[0_0_12px_rgba(61,220,151,.3)]">
+          className="btn-press px-4 py-2 rounded-xl bg-accent text-[#04110b] text-[12.5px] font-semibold hover:bg-accent-hover disabled:opacity-50 shadow-[0_0_12px_color-mix(in_srgb,var(--color-accent)_30%,transparent)]">
             {busy ? '正在同步…' : '立即同步 GitHub'}
           </button>
           <button

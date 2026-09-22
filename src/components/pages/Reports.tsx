@@ -186,10 +186,11 @@ export default function Reports() {
                 onClick={() => setSel(x.id)}
                 className={`w-full text-left rounded-xl px-3 py-2.5 transition-all relative ${
                   on
-                    ? 'bg-[#182131] border border-line2 shadow-sm'
-                    : 'hover:bg-white/[0.03] border border-transparent'
-                }`}>
-                {on && <span className="absolute left-1 top-2.5 bottom-2.5 w-1 bg-accent rounded-full shadow-[0_0_8px_#3ddc97]" />}
+                    ? 'bg-card-subtle border border-line2 shadow-sm'
+                    : 'hover:bg-black/[0.03] border border-transparent'
+                }`}
+              >
+        {on && <span className="absolute left-1 top-2.5 bottom-2.5 w-1 bg-accent rounded-full shadow-[0_0_8px_var(--color-accent)]" />}
                 <div className="flex items-center gap-2">
                   <IconReport className="w-3.5 h-3.5 text-faint" />
                   <span className="text-[13px] font-mono font-medium text-txt">{x.date}</span>
@@ -197,7 +198,7 @@ export default function Reports() {
                     className={`ml-auto text-[10px] px-2 py-0.5 rounded-full font-medium ${
                       x.status === 'draft'
                         ? 'bg-[rgba(167,139,250,.15)] text-purple border border-[rgba(167,139,250,.25)]'
-                        : 'bg-[rgba(61,220,151,.15)] text-accent border border-[rgba(61,220,151,.25)]'
+      : 'bg-accent/15 text-accent border border-accent/25'
                     }`}>
                     {x.status === 'draft' ? 'AI 起草' : '已确认'}
                   </span>
@@ -339,7 +340,7 @@ export default function Reports() {
             {!busy && r.status === 'draft' && (
               <button
                 onClick={confirm}
-                className="btn-press px-5 py-2 rounded-xl bg-accent text-[#04110b] text-[12.5px] font-semibold hover:bg-accent-hover shadow-[0_0_14px_rgba(61,220,151,.35)] inline-flex items-center gap-1.5">
+          className="btn-press px-5 py-2 rounded-xl bg-accent text-[#04110b] text-[12.5px] font-semibold hover:bg-accent-hover shadow-[0_0_14px_color-mix(in_srgb,var(--color-accent)_35%,transparent)] inline-flex items-center gap-1.5">
                 <IconCheck className="w-3.5 h-3.5" strokeWidth={2.4} />
                 确认归档
               </button>

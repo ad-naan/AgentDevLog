@@ -1,14 +1,15 @@
 'use client'
 
 // ─── 全局客户端 Store：从 /api/state 加载，变更后乐观刷新 ───
+// scope 不再是手动开关：由当前路由 /work | /life 决定
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import type { AppState, Scope } from '@/lib/types'
 
 interface StoreValue {
   s: AppState | null
+  /** 当前分区，由路径 /life 前缀推导 */
   scope: Scope
-  setScope: (s: Scope) => void
   refresh: () => Promise<void>
   /** 发起 API 变更并自动刷新全局状态 */
   api: (path: string, init?: RequestInit) => Promise<Response>
@@ -16,12 +17,12 @@ interface StoreValue {
 
 const Ctx = createContext<StoreValue | null>(null)
 
-let loadedOnce = false
-
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
+  const pathname = usePathname()
   const [s, setS] = useState<AppState | null>(null)
-  const [scope, setScope] = useState<Scope>('work')
+
+  const scope: Scope = pathname?.startsWith('/life') ? 'life' : 'work'
 
   const refresh = useCallback(async () => {
     try {
@@ -30,16 +31,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         router.push('/login')
         return
       }
-      if (r.ok) {
-        const data = (await r.json()) as AppState
-        setS(data)
-        if (!loadedOnce) {
-          loadedOnce = true
-          if (data.settings?.defaultScope) {
-            setScope(data.settings.defaultScope)
-          }
-        }
-      }
+      if (r.ok) setS((await r.json()) as AppState)
     } catch (err) {
       console.error('Failed to refresh state', err)
     }
@@ -56,18 +48,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         return r.ok ? r.json() : null
       })
       .then((data: AppState | null) => {
-        if (active && data) {
-          setS(data)
-          if (!loadedOnce) {
-            loadedOnce = true
-            if (data.settings?.defaultScope) {
-              setScope(data.settings.defaultScope)
-            }
-          }
-        }
+        if (active && data) setS(data)
       })
       .catch((err) => console.error('Failed to load initial state', err))
-
     return () => {
       active = false
     }
@@ -79,7 +62,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return r
   }, [refresh])
 
-  return <Ctx.Provider value={{ s, scope, setScope, refresh, api }}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={{ s, scope, refresh, api }}>{children}</Ctx.Provider>
 }
 
 export function useStore(): StoreValue {

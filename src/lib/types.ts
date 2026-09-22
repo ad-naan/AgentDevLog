@@ -74,7 +74,8 @@ export interface BreakdownDTO {
 export interface AppState {
   user: { name: string; title: string; login?: string | null; avatar?: string | null }
   settings: {
-    defaultScope: Scope
+    workStart: string
+    workEnd: string
     watchedRepos: string[]
     /** 生活分区关注的仓库（个人项目等），同步后归入 life 分区 */
     watchedReposLife: string[]

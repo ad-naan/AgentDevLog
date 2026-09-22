@@ -76,8 +76,8 @@ function TaskCard({ t }: { t: TodoDTO }) {
         aria-label={t.done ? '标记未完成' : '标记完成'}
         className={`mt-0.5 w-[18px] h-[18px] rounded-[5px] border flex items-center justify-center shrink-0 transition-all duration-200 btn-press ${
           t.done
-            ? 'bg-accent border-accent text-[#04110b] shadow-[0_0_10px_rgba(61,220,151,.6)]'
-            : 'border-line2 hover:border-accent hover:shadow-[0_0_8px_rgba(61,220,151,.3)]'
+    ? 'bg-accent border-accent text-[#04110b] shadow-[0_0_10px_color-mix(in_srgb,var(--color-accent)_60%,transparent)]'
+    : 'border-line2 hover:border-accent hover:shadow-[0_0_8px_color-mix(in_srgb,var(--color-accent)_30%,transparent)]'
         }`}>
         {t.done && <IconCheck className="w-3 h-3" strokeWidth={2.8} />}
       </button>
@@ -126,7 +126,7 @@ function TaskCard({ t }: { t: TodoDTO }) {
           <span
             className={`px-2 py-px rounded-full text-[10.5px] font-medium ${
               t.scope === 'work'
-                ? 'bg-[rgba(61,220,151,.1)] text-accent border border-[rgba(61,220,151,.2)]'
+      ? 'bg-accent/10 text-accent border border-accent/20'
                 : 'bg-[rgba(240,136,62,.12)] text-orange border border-[rgba(240,136,62,.2)]'
             }`}>
             {t.scope === 'work' ? '工作' : '生活'}
@@ -138,7 +138,6 @@ function TaskCard({ t }: { t: TodoDTO }) {
       <div className="flex items-center gap-1 relative shrink-0">
         <button
           onClick={() => setShowMenu(!showMenu)}
-          aria-label="更多操作"
           className="opacity-0 group-hover:opacity-100 text-faint hover:text-txt p-1 rounded-lg hover:bg-white/[0.04] transition-all">
           <IconMore className="w-3.5 h-3.5" />
         </button>
@@ -354,7 +353,7 @@ export default function TodoList() {
           </div>
           <button
             onClick={() => setCreating(true)}
-            className="btn-press px-4 py-2 rounded-xl bg-accent text-[#04110b] text-[13px] font-semibold inline-flex items-center gap-1.5 hover:bg-accent-hover shadow-[0_0_16px_rgba(61,220,151,.35)] transition-all">
+          className="btn-press px-4 py-2 rounded-xl bg-accent text-[#04110b] text-[13px] font-semibold inline-flex items-center gap-1.5 hover:bg-accent-hover shadow-[0_0_16px_color-mix(in_srgb,var(--color-accent)_35%,transparent)] transition-all">
             <IconPlus className="w-4 h-4" strokeWidth={2.4} />
             新建任务
           </button>
@@ -372,7 +371,7 @@ export default function TodoList() {
                 if (e.key === 'Escape') setCreating(false)
               }}
               placeholder="任务标题，Enter 保存 / Esc 取消"
-              className="w-full bg-inset border border-line rounded-xl px-3.5 py-2.5 text-[13.5px] outline-none focus:border-accent focus:shadow-[0_0_12px_rgba(61,220,151,.15)] transition-all"
+          className="w-full bg-inset border border-line rounded-xl px-3.5 py-2.5 text-[13.5px] outline-none focus:border-accent focus:shadow-[0_0_12px_color-mix(in_srgb,var(--color-accent)_15%,transparent)] transition-all"
             />
             <div className="flex gap-2 items-center flex-wrap">
               {(['P0', 'P1', 'P2'] as Priority[]).map((p) => (
@@ -433,7 +432,7 @@ export default function TodoList() {
               onClick={() => setFilter(f)}
               className={`btn-press text-[12px] px-3 py-1 rounded-full border transition-all duration-200 ${
                 filter === f
-                  ? 'bg-accent text-[#04110b] border-transparent font-semibold shadow-[0_0_12px_rgba(61,220,151,.3)]'
+      ? 'bg-accent text-[#04110b] border-transparent font-semibold shadow-[0_0_12px_color-mix(in_srgb,var(--color-accent)_30%,transparent)]'
                   : 'border-line text-faint hover:text-dim hover:border-line2 bg-white/[0.02]'
               }`}>
               {FILTER_LABEL[f]}

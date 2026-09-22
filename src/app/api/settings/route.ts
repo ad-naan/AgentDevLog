@@ -18,7 +18,8 @@ export async function PATCH(req: Request) {
   }
 
   const data: Record<string, unknown> = {}
-  if (b.defaultScope === 'work' || b.defaultScope === 'life') data.defaultScope = b.defaultScope
+  if (/^([01]\d|2[0-3]):[0-5]\d$/.test(b.workStart)) data.workStart = b.workStart
+  if (/^([01]\d|2[0-3]):[0-5]\d$/.test(b.workEnd)) data.workEnd = b.workEnd
   if (Array.isArray(b.watchedRepos)) data.watchedRepos = b.watchedRepos.map(String)
   if (Array.isArray(b.watchedReposLife)) data.watchedReposLife = b.watchedReposLife.map(String)
   if (typeof b.githubToken === 'string') data.githubToken = b.githubToken

@@ -102,7 +102,7 @@ export default function Analytics() {
                 <span className="text-[12.5px] font-mono text-faint">
                   总提交 <b className="text-accent text-[15px] font-bold">{totalCommits}</b> 次
                 </span>
-                <span className="text-[11px] font-mono text-accent ml-2 bg-[rgba(61,220,151,.1)] px-1.5 py-0.5 rounded">
+                <span className="text-[11px] font-mono text-accent ml-2 bg-accent/10 px-1.5 py-0.5 rounded">
                   ↑ 12%
                 </span>
               </div>

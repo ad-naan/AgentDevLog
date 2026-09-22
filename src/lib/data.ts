@@ -39,7 +39,8 @@ export async function loadState(): Promise<AppState> {
   return {
     user: { name: user.name, title: user.title, login: user.login, avatar: user.avatar },
     settings: {
-      defaultScope: settings.defaultScope as 'work' | 'life',
+      workStart: settings.workStart,
+      workEnd: settings.workEnd,
       watchedRepos: settings.watchedRepos,
       watchedReposLife: settings.watchedReposLife,
       githubToken: settings.githubToken,

@@ -24,15 +24,31 @@ interface CommitDetail {
   files?: { filename?: string; status?: string; additions?: number; deletions?: number }[]
 }
 
-/** 单个请求封装：失败返回 null（由调用方记入 errors） */
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+/**
+ * 单个请求封装：失败返回 null（由调用方记入 errors）。
+ * 限流/5xx/网络错误自动指数退避重试（最多 3 次尝试），4xx 不重试。
+ */
 async function gh<T>(url: string, headers: Record<string, string>): Promise<T | null> {
-  try {
-    const r = await fetch(url, { headers, next: { revalidate: 0 } })
-    if (!r.ok) return null
-    return (await r.json()) as T
-  } catch {
-    return null
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const r = await fetch(url, { headers, next: { revalidate: 0 } })
+      if (r.ok) return (await r.json()) as T
+      // 403 通常是二级限流（带 Retry-After），404 是仓库不存在；其余 5xx 值得重试
+      if (r.status !== 403 && r.status !== 404 && r.status < 500) return null
+      if (r.status === 404) return null
+      const retryAfter = Number(r.headers.get('retry-after') || 0)
+      const waitMs = retryAfter > 0 && retryAfter < 60
+        ? retryAfter * 1000
+        : 1500 * 2 ** attempt
+      await sleep(waitMs)
+    } catch {
+      if (attempt === 2) return null
+      await sleep(1500 * 2 ** attempt)
+    }
   }
+  return null
 }
 
 /** 并发受限的 map：避免一次打满 GitHub API 限流 */
@@ -93,8 +109,9 @@ export async function syncGithub(userId: number) {
   }
   if (settings.githubToken) headers.Authorization = `Bearer ${settings.githubToken}`
   const ghUser = settings.githubUser.trim().toLowerCase()
-  // since = 上次同步时间（留 10 分钟重叠窗口防时钟偏差/同步期间推送），但不早于 14 天前
-  const since = new Date(Math.max(settings.lastSync.getTime() - 10 * 60e3, Date.now() - 14 * 864e5))
+  // since = 上次同步时间（留 10 分钟重叠窗口防时钟偏差/同步期间推送），上限放宽到 90 天。
+  // 超过 90 天未同步视为放弃，避免单次请求量爆炸。
+  const since = new Date(Math.max(settings.lastSync.getTime() - 10 * 60e3, Date.now() - 90 * 864e5))
   const sinceISO = since.toISOString()
 
   const errors: string[] = []
@@ -139,8 +156,19 @@ export async function syncGithub(userId: number) {
       errors.push(`${repo}: 无法访问（检查仓库名/Token 权限）`)
       return
     }
-    if (!branches) {
-      errors.push(`${repo}: 分支列表获取失败（可能被限流），本次未同步该仓库提交`)
+    // 分支列表失败时降级：改用仓库默认分支，保证主开发线的提交不丢
+    let branchNames: string[]
+    if (branches) {
+      branchNames = branches.map((b) => b.name).filter(Boolean).slice(0, 12)
+    } else {
+      const info = await gh<{ default_branch?: string }>(`${GH}/repos/${repo}`, headers)
+      if (info?.default_branch) {
+        branchNames = [info.default_branch]
+        errors.push(`${repo}: 分支列表获取失败，已降级为仅同步默认分支 ${info.default_branch}`)
+      } else {
+        branchNames = []
+        errors.push(`${repo}: 分支列表获取失败（可能被限流），本次未同步该仓库提交`)
+      }
     }
 
     // ── PR / Issue 事件 ──
@@ -182,7 +210,6 @@ export async function syncGithub(userId: number) {
     }
 
     // ── 全分支 commit 同步 ──
-    const branchNames = (branches || []).map((b) => b.name).filter(Boolean).slice(0, 12)
     const lists = await mapLimit(branchNames, 6, async (b) => {
       // 翻页取最近 3 页（300 条），避免窗口内提交超过 100 条被截断
       const all: CommitListItem[] = []

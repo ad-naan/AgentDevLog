@@ -29,7 +29,8 @@ model Settings {
   id            Int     @id @default(autoincrement())
   userId        Int     @unique
   user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  defaultScope  String  @default("work")
+  workStart     String  @default("09:00") // 工作时段开始，处于时段内进入 /work
+  workEnd       String  @default("18:00") // 工作时段结束，之外进入 /life
   watchedRepos     String[] @default([]) // 工作分区关注的仓库
   watchedReposLife String[] @default([]) // 生活分区关注的仓库（个人项目等）
   githubToken   String  @default("")

@@ -36,7 +36,7 @@ export function useCommandPalette() {
 
 function CommandPaletteModal({ onClose }: { onClose: () => void }) {
   const router = useRouter()
-  const { scope, setScope, api } = useStore()
+  const { scope, api } = useStore()
   const [q, setQ] = useState('')
   const [sel, setSel] = useState(0)
   const [syncing, setSyncing] = useState(false)
@@ -48,43 +48,54 @@ function CommandPaletteModal({ onClose }: { onClose: () => void }) {
     onClose()
   }, [router, onClose])
 
-  const cmds = useMemo<Cmd[]>(() => [
-    { id: 'dash', label: '前往 工作台', hint: '→ ~/devlog/today', keywords: 'dashboard home 今日 首页', icon: IconDashboard, run: () => nav('/') },
-    { id: 'logs', label: '前往 工作日志', hint: '→ ~/devlog/logs', keywords: 'log 日志 编辑 记录', icon: IconLog, run: () => nav('/logs') },
-    { id: 'reports', label: '前往 报告中心', hint: '→ ~/devlog/reports', keywords: 'report 日报 报告', icon: IconReport, run: () => nav('/reports') },
-    { id: 'todos', label: '前往 TodoList', hint: '→ ~/devlog/todos', keywords: 'todo 待办 任务', icon: IconCheck, run: () => nav('/todos') },
-    { id: 'bd', label: '前往 需求拆解', hint: '→ ~/devlog/agent/requirements', keywords: 'breakdown 拆解 需求 ai', icon: IconSpark, run: () => nav('/breakdown') },
-    { id: 'ana', label: '前往 数据看板', hint: '→ ~/devlog/insights', keywords: 'analytics 数据 统计 热力图', icon: IconChart, run: () => nav('/analytics') },
-    { id: 'set', label: '前往 设置', hint: '→ ~/devlog/settings', keywords: 'settings 设置 配置 github llm', icon: IconGear, run: () => nav('/settings') },
-    {
-      id: 'scope',
-      label: `切换到${scope === 'work' ? '生活' : '工作'}分区`,
-      hint: scope === 'work' ? 'work → life' : 'life → work',
-      keywords: 'scope 分区 切换 work life 工作 生活',
-      icon: scope === 'work' ? IconHome : IconBriefcase,
-      run: () => { setScope(scope === 'work' ? 'life' : 'work'); onClose() },
-    },
-    {
-      id: 'sync',
-      label: syncing ? '正在同步 GitHub…' : '立即同步 GitHub',
-      hint: 'POST /api/sync',
-      keywords: 'sync 同步 github 拉取',
-      icon: IconRefresh,
-      run: async () => {
-        if (syncing) return
-        setSyncing(true)
-        try { await api('/api/sync', { method: 'POST' }) } finally { setSyncing(false); onClose() }
+  const cmds = useMemo<Cmd[]>(() => {
+    const work = scope === 'work'
+    const zone = work ? '/work' : '/life'
+    const base: Cmd[] = [
+      { id: 'dash', label: work ? '前往 工作台' : '前往 生活台', hint: work ? '→ ~/devlog/today' : '→ journal/today', keywords: 'dashboard home 今日 首页 journal', icon: work ? IconDashboard : IconHome, run: () => nav(zone) },
+      { id: 'logs', label: work ? '前往 工作日志' : '前往 日记本', hint: work ? '→ ~/devlog/logs' : '→ journal/entries', keywords: 'log 日志 日记 编辑 记录', icon: IconLog, run: () => nav(`${zone}/logs`) },
+      { id: 'todos', label: work ? '前往 TodoList' : '前往 小心愿', hint: work ? '→ ~/devlog/todos' : '→ journal/wishes', keywords: 'todo 待办 任务 心愿', icon: IconCheck, run: () => nav(`${zone}/todos`) },
+      { id: 'reports', label: work ? '前往 报告中心' : '前往 回忆册', hint: work ? '→ ~/devlog/reports' : '→ journal/memories', keywords: 'report 日报 报告 回忆 复盘 memories', icon: IconReport, run: () => nav(`${zone}/reports`) },
+    ]
+    if (work) {
+      base.push(
+        { id: 'bd', label: '前往 需求拆解', hint: '→ ~/devlog/agent/requirements', keywords: 'breakdown 拆解 需求 ai', icon: IconSpark, run: () => nav('/work/breakdown') },
+        { id: 'ana', label: '前往 数据看板', hint: '→ ~/devlog/insights', keywords: 'analytics 数据 统计 热力图', icon: IconChart, run: () => nav('/work/analytics') },
+      )
+    }
+    base.push(
+      { id: 'set', label: '前往 设置', hint: '→ settings', keywords: 'settings 设置 配置 github llm 时间段', icon: IconGear, run: () => nav(`${zone}/settings`) },
+      {
+        id: 'scope',
+        label: `切换到${work ? '生活' : '工作'}分区`,
+        hint: work ? '/work → /life' : '/life → /work',
+        keywords: 'scope 分区 切换 work life 工作 生活 下班',
+        icon: work ? IconHome : IconBriefcase,
+        run: () => nav(work ? '/life' : '/work'),
       },
-    },
-    {
-      id: 'ai',
-      label: '打开 AI 助手',
-      hint: '右下角 · devlog agent',
-      keywords: 'ai 助手 assistant agent 对话',
-      icon: IconTerminal,
-      run: () => { window.dispatchEvent(new CustomEvent('open-assistant')); onClose() },
-    },
-  ], [nav, scope, setScope, api, syncing, onClose])
+      {
+        id: 'sync',
+        label: syncing ? '正在同步 GitHub…' : '立即同步 GitHub',
+        hint: 'POST /api/sync',
+        keywords: 'sync 同步 github 拉取',
+        icon: IconRefresh,
+        run: async () => {
+          if (syncing) return
+          setSyncing(true)
+          try { await api('/api/sync', { method: 'POST' }) } finally { setSyncing(false); onClose() }
+        },
+      },
+      {
+        id: 'ai',
+        label: '打开 AI 助手',
+        hint: '右下角 · devlog agent',
+        keywords: 'ai 助手 assistant agent 对话',
+        icon: IconTerminal,
+        run: () => { window.dispatchEvent(new CustomEvent('open-assistant')); onClose() },
+      },
+    )
+    return base
+  }, [nav, scope, api, syncing, onClose])
 
   const hits = useMemo(() => {
     const k = q.trim().toLowerCase()
