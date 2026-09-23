@@ -250,9 +250,9 @@ export default function LogEditor() {
     })
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[170px_1fr] lg:grid-cols-[170px_1fr_330px] gap-4 h-full min-h-0 max-w-[1440px] mx-auto">
+    <div className="grid grid-cols-1 lg:grid-cols-[170px_minmax(0,1fr)_330px] gap-3 lg:gap-4 h-full min-h-0 max-w-[1440px] mx-auto">
       {/* 左栏：日志历史 */}
-      <div className="bg-card border border-line rounded-2xl flex flex-col min-h-0 overflow-hidden">
+       <div className="bg-card border border-line rounded-xl lg:rounded-2xl flex flex-col min-h-[180px] lg:min-h-0 overflow-hidden">
         <div className="px-3.5 py-3 border-b border-line flex items-center justify-between">
           <b className="text-[13px] font-semibold">日志历史</b>
           <span className="text-[10.5px] text-faint font-mono bg-inset px-2 py-0.5 rounded-full border border-line">
@@ -294,19 +294,19 @@ export default function LogEditor() {
       </div>
 
       {/* 中间：Markdown 编辑器核心区（对齐 design/420cc382） */}
-      <div className="bg-card border border-line rounded-2xl flex flex-col min-h-0 overflow-hidden shadow-sm">
+       <div className="bg-card border border-line rounded-xl lg:rounded-2xl flex flex-col min-h-[420px] lg:min-h-0 overflow-hidden shadow-sm">
         {/* 顶部状态栏 */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-line text-[12px] text-faint bg-white/[0.01]">
-          <div className="flex items-center gap-2 font-mono">
-            <span className="text-dim">markdown</span>
-            <span className="text-line2">·</span>
-            <span className="flex items-center gap-1.5 text-accent text-[11px]">
+         <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 border-b border-line text-[12px] text-faint bg-white/[0.01]">
+           <div className="flex items-center gap-2 font-mono min-w-0">
+             <span className="hidden sm:inline text-dim">markdown</span>
+             <span className="hidden sm:inline text-line2">·</span>
+             <span className="flex items-center gap-1.5 text-accent text-[11px]">
               <i className="w-1.5 h-1.5 rounded-full bg-accent pulse-dot" />
               自动保存
             </span>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-1 text-[11.5px]">
+           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+             <span className="inline-flex items-center gap-1 text-[11px] truncate max-w-[150px]">
               {log ? (
                 <>
                   <IconCheck className="w-3.5 h-3.5 text-accent" />
@@ -342,10 +342,10 @@ export default function LogEditor() {
         )}
 
         {/* 编辑区域：极简行号与等宽代码 */}
-        <div className="flex-1 min-h-0 flex overflow-y-auto">
+         <div className="flex-1 min-h-0 flex overflow-y-auto">
           <div
             aria-hidden
-            className="select-none text-right px-3.5 py-4 font-mono text-[12px] leading-[1.75] text-faint/60 shrink-0 border-r border-line/60">
+             className="select-none text-right px-2.5 sm:px-3.5 py-4 font-mono text-[12px] leading-[1.75] text-faint/60 shrink-0 border-r border-line/60">
             {lines.map((_, i) => (
               <div key={i}>{i + 1}</div>
             ))}
@@ -362,13 +362,13 @@ export default function LogEditor() {
                   ? `${selDate} 还没有日志，在此输入即可自动创建…\n\n# 今日工作日志\n## 1. 主要工作\n- \n\n## 2. 遇到的问题\n- \n\n## 3. 明日计划\n- `
                   : `${selDate} · 想到什么就写什么，一个字也算记录…\n\n今日一问：${promptOfDay(selDate)}`
             }
-            className="flex-1 min-h-0 bg-transparent px-4 py-4 font-mono text-[13px] leading-[1.75] text-txt outline-none resize-none placeholder:text-faint/60"
-            style={{ minHeight: `${lines.length * 23 + 32}px` }}
-          />
+             className="flex-1 min-h-0 bg-transparent px-3 sm:px-4 py-4 font-mono text-[13px] leading-[1.75] text-txt outline-none resize-none placeholder:text-faint/60"
+             style={{ minHeight: `${lines.length * 23 + 32}px` }}
+           />
         </div>
 
         {/* 底部工具栏与标签 */}
-        <div className="border-t border-line px-4 py-2.5 flex items-center gap-3 bg-inset/40 flex-wrap">
+         <div className="border-t border-line px-3 sm:px-4 py-2.5 flex items-center gap-2 sm:gap-3 bg-inset/40 flex-wrap">
           <div className="flex items-center gap-1">
             {TOOLS.map((tool) => (
               <button
@@ -445,7 +445,7 @@ export default function LogEditor() {
       {/* 右栏：关联活动 + AI 建议 */}
       <div className="flex flex-col gap-4 min-h-0 overflow-y-auto">
         {/* 关联 GitHub 活动 */}
-        <div className="bg-card border border-line rounded-2xl flex flex-col min-h-0 overflow-hidden">
+         <div className="bg-card border border-line rounded-xl lg:rounded-2xl flex flex-col min-h-[260px] lg:min-h-0 overflow-hidden">
           <div className="px-4 py-3 border-b border-line flex items-center justify-between">
             <div>
               <b className="text-[13.5px]">关联 GitHub 活动</b>
@@ -490,7 +490,7 @@ export default function LogEditor() {
         </div>
 
         {/* AI 建议卡片（对齐设计图） */}
-        <div className="insight-glow rounded-2xl p-4.5 flex flex-col gap-3">
+         <div className="insight-glow rounded-xl lg:rounded-2xl p-4 flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <IconSpark className="w-4 h-4 text-purple" />
             <b className="text-[13.5px]">AI 建议</b>
@@ -554,7 +554,7 @@ export default function LogEditor() {
           <button
             onClick={genTips}
             disabled={aiLoading}
-            className="btn-press mt-1 w-full py-2.5 rounded-xl text-[13px] font-semibold text-white bg-gradient-to-r from-[#5e5ce6] to-[#0a84ff] disabled:opacity-60 inline-flex items-center justify-center gap-2 hover:shadow-[0_0_16px_rgba(94,92,230,.4)] transition-all">
+             className="btn-press mt-1 w-full min-h-10 rounded-xl text-[13px] font-semibold text-white bg-gradient-to-r from-[#5e5ce6] to-[#0a84ff] disabled:opacity-60 inline-flex items-center justify-center gap-2 hover:shadow-[0_0_16px_rgba(94,92,230,.4)] transition-all">
             <IconSpark className="w-4 h-4" />
             {aiLoading ? '正在分析…' : tips.length ? '采纳建议 / 重新生成' : '生成 AI 建议'}
           </button>

@@ -78,7 +78,7 @@ function Sidebar({ zone }: { zone: Scope }) {
   }
 
   return (
-    <aside className="w-[220px] shrink-0 bg-panel/80 backdrop-blur-xl border-r border-line flex flex-col p-3.5 relative z-10 select-none">
+    <aside className="hidden lg:flex w-[220px] shrink-0 bg-panel/80 backdrop-blur-xl border-r border-line flex-col p-3.5 relative z-10 select-none">
       {/* 顶部氛围光（极弱、静止） */}
       <div aria-hidden className="pointer-events-none absolute -top-24 -left-16 w-60 h-60 rounded-full opacity-[.06] sidebar-glow" />
 
@@ -213,12 +213,12 @@ function TopBar({ zone, onOpenCmd }: { zone: Scope; onOpenCmd: () => void }) {
   }
 
   return (
-    <div className="h-[54px] shrink-0 border-b border-line flex items-center px-5 gap-3.5 bg-panel/70 backdrop-blur-2xl">
+    <div className="h-[54px] shrink-0 border-b border-line flex items-center px-3 sm:px-5 gap-3.5 bg-panel/70 backdrop-blur-2xl">
       {/* 页面标题 */}
       <div className="flex items-center gap-2.5">
-        <span className={`text-[16px] font-semibold tracking-tight text-txt ${zone === 'life' ? 'italic' : ''}`}>
-          {TITLES[path] ?? 'devlog'}
-        </span>
+         <span className={`text-[15px] sm:text-[16px] font-semibold tracking-tight text-txt ${zone === 'life' ? 'italic' : ''}`}>
+           {TITLES[path] ?? 'devlog'}
+         </span>
         <span className={`text-[10.5px] px-2 py-0.5 rounded-full font-medium ${zone === 'work'
           ? 'text-blue bg-blue/10'
           : 'text-orange bg-orange/10'}`}>
@@ -230,7 +230,7 @@ function TopBar({ zone, onOpenCmd }: { zone: Scope; onOpenCmd: () => void }) {
       <div className="mx-auto hidden md:block">
         <button
           onClick={onOpenCmd}
-          className="btn-press flex items-center gap-2.5 h-8 px-3.5 rounded-full bg-card border border-line hover:border-line2 text-faint hover:text-dim cursor-pointer w-[280px] transition-all duration-300">
+            className="btn-press flex items-center gap-2.5 h-8 px-3.5 rounded-full bg-card border border-line hover:border-line2 text-faint hover:text-dim cursor-pointer w-[240px] lg:w-[280px] transition-all duration-300">
           <IconSearch width={13} height={13} className="shrink-0 text-faint" />
           <span className="text-[12px] truncate flex-1 text-left">搜索任务、日记、文档…</span>
           <kbd className="text-[10px] font-mono text-faint border border-line rounded px-1.5 py-0.5 bg-black/20">⌘ K</kbd>
@@ -250,7 +250,7 @@ function TopBar({ zone, onOpenCmd }: { zone: Scope; onOpenCmd: () => void }) {
             <svg viewBox="0 0 16 16" width={13.5} height={13.5} fill="currentColor" className={syncing ? 'animate-spin text-dim' : 'text-dim'}>
               <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
             </svg>
-            <span className={`text-[11.5px] ${synced ? 'text-accent' : 'text-faint'}`}>
+            <span className={`hidden sm:inline text-[11.5px] ${synced ? 'text-accent' : 'text-faint'}`}>
               {syncing ? '同步中…' : synced ? `${syncAgo} 分钟前` : '未同步'}
             </span>
             {synced && !syncing && <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-accent pulse-dot" />}
@@ -284,6 +284,34 @@ function TopBar({ zone, onOpenCmd }: { zone: Scope; onOpenCmd: () => void }) {
   )
 }
 
+function MobileNav({ zone }: { zone: Scope }) {
+  const path = usePathname()
+  const nav = zone === 'work' ? WORK_NAV : LIFE_NAV
+  const items: NavItem[] = [...nav, { href: `/${zone}/settings`, label: '设置', icon: IconGear }]
+
+  return (
+    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-line bg-panel/90 backdrop-blur-2xl px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-1.5">
+      <div className="flex items-stretch gap-1 overflow-x-auto">
+        {items.map((item) => {
+          const active = path === item.href
+          const Icon = item.icon
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={active ? 'page' : undefined}
+              className={`relative flex min-w-[58px] flex-1 flex-col items-center justify-center gap-1 rounded-xl py-1.5 text-[10px] transition-colors ${active ? 'bg-accent/10 text-accent' : 'text-faint hover:text-dim'}`}
+            >
+              <Icon width={16} height={16} />
+              <span className="whitespace-nowrap">{item.label}</span>
+            </Link>
+          )
+        })}
+      </div>
+    </nav>
+  )
+}
+
 export default function Shell({ children }: { children: React.ReactNode }) {
   const zone = useZone()
   const { open, setOpen } = useCommandPalette()
@@ -294,10 +322,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         <Sidebar zone={zone} />
         <main className="flex-1 min-w-0 flex flex-col">
           <TopBar zone={zone} onOpenCmd={() => setOpen(true)} />
-          <div className="flex-1 min-h-0 overflow-y-auto main-area">{children}</div>
+          <div className="flex-1 min-h-0 overflow-y-auto main-area pb-16 lg:pb-0">{children}</div>
         </main>
       </div>
       <CommandPalette open={open} onClose={() => setOpen(false)} />
+      <MobileNav zone={zone} />
     </div>
   )
 }

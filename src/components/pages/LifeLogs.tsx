@@ -100,10 +100,10 @@ export default function LifeLogs() {
 
 
   return (
-    <div className="max-w-[760px] mx-auto pb-10 flex flex-col gap-6">
-      <header className="flex items-end justify-between pt-2">
+    <div className="max-w-[760px] mx-auto px-3 sm:px-0 pb-10 flex flex-col gap-5 sm:gap-6">
+      <header className="flex items-end justify-between gap-3 pt-2">
         <div>
-          <h1 className="text-[24px] text-txt leading-snug">日记本</h1>
+           <h1 className="text-[22px] sm:text-[24px] text-txt leading-snug">日记本</h1>
           <p className="text-[12.5px] text-faint mt-1 italic">
             {entries.length > 0 ? `已经写下 ${entries.length} 页` : '第一页，从今天开始'} · 不用写得好，写下就好
           </p>
@@ -111,7 +111,7 @@ export default function LifeLogs() {
         {!creating && (
           <button
             onClick={() => setCreating(true)}
-            className="flex items-center gap-1.5 px-4 h-9 rounded-full bg-accent/12 border border-accent/30 text-accent text-[12.5px] font-medium btn-press hover:bg-accent/20 transition-all"
+             className="flex items-center gap-1.5 px-3 sm:px-4 h-9 rounded-xl bg-accent/12 border border-accent/30 text-accent text-[12.5px] font-medium btn-press hover:bg-accent/20 transition-all shrink-0"
           >
             <IconPlus width={13} height={13} />写今天的日记
           </button>
@@ -120,7 +120,7 @@ export default function LifeLogs() {
 
       {/* 今日新建 */}
       {creating && (
-        <section className="rounded-2xl border border-accent/25 bg-card p-5 shadow-sm">
+         <section className="rounded-xl sm:rounded-2xl border border-accent/25 bg-card p-4 sm:p-5 shadow-sm">
           <textarea
             autoFocus
             value={newText}
@@ -173,18 +173,18 @@ export default function LifeLogs() {
                     }`}
                   />
                   <div
-                    className={`bg-card border rounded-2xl p-5 shadow-sm transition-all duration-200 ${
+                       className={`bg-card border rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-sm transition-all duration-200 ${
                       open ? 'border-accent/35' : 'border-line hover:border-line2'
                     }`}
                   >
                     {/* 纸页抬头 */}
-                    <div className="flex items-baseline gap-3 mb-3">
+                     <div className="flex items-start gap-2 sm:items-baseline sm:gap-3 mb-3">
                       <span className="text-[26px] leading-none text-txt serif-num">{day}</span>
                       <span className="text-[12px] text-faint">{month}月 · 周{week}</span>
                       {mood && <span title={mood[2]} className="text-[15px]">{mood[1]}</span>}
-                      <div className="ml-auto flex items-center gap-2">
+                       <div className="ml-auto flex max-w-[48%] flex-wrap justify-end gap-1.5">
                         {l.tags.slice(0, 3).map((t) => (
-                          <span key={t} className="text-[10.5px] text-dim border border-line rounded-full px-2 py-0.5 bg-card-subtle">
+                             <span key={t} className="text-[10.5px] text-dim border border-line rounded-full px-2 py-0.5 bg-card-subtle truncate max-w-[110px]">
                             {t}
                           </span>
                         ))}

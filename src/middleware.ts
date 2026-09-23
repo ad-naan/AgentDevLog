@@ -1,10 +1,18 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { SESSION_COOKIE } from '@/lib/auth-shared'
 
+// 开发期临时放开登录，方便直接调试工作区与生活区。
+// 生产环境仍然走完整的会话校验，发布前无需再手动改回开关。
+const AUTH_BYPASS = process.env.NODE_ENV !== 'production'
+
 // 轻量网关：仅校验会话 Cookie 是否存在（真正的签名校验在服务端 ensureUser 完成）。
 // 未登录：页面重定向到 /login，API 返回 401。已登录访问 /login 则回首页。
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
+
+  // TODO: UI 开发完成后，如需本地也验证登录流程，可临时改为 false。
+  if (AUTH_BYPASS) return NextResponse.next()
+
   const hasSession = Boolean(req.cookies.get(SESSION_COOKIE)?.value)
 
   // OAuth 相关接口始终可访问。
