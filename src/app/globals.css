@@ -87,71 +87,38 @@ html, body {
   color: var(--color-dim);
 }
 
-/* 纸张质感：细微纤维噪点 + 暖光 */
+/* 生活区：安静的纸面底色，内容块优先于装饰 */
 .zone-life .main-area,
 .zone-life main {
-  background-image: radial-gradient(rgba(120, 100, 70, 0.05) 1px, transparent 0);
-  background-size: 22px 22px;
+  background-color: var(--color-bg);
+  background-image: linear-gradient(rgba(180, 87, 62, 0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(180, 87, 62, 0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
 }
 
-/* 纸面上的卡片阴影 */
 .zone-life .bg-card {
-  box-shadow: 0 1px 3px rgba(96, 80, 56, 0.08), 0 4px 14px rgba(96, 80, 56, 0.05);
+  box-shadow: 0 1px 2px rgba(96, 80, 56, 0.035);
 }
 
-/* 主按钮文字在浅底上用纸色 */
-.zone-life .bg-accent { color: #fdf9f0; }
-
-/* 玻璃卡片在纸上改为纸面浮层 */
-.zone-life .glass-card {
-  background: rgba(255, 253, 248, 0.88);
-  border: 1px solid rgba(72, 60, 44, 0.12);
-}
-.zone-life .glass-panel {
-  background: rgba(246, 241, 231, 0.85);
-  border: 1px solid rgba(72, 60, 44, 0.12);
+.zone-life .main-area > * {
+  animation: life-page-in .35s var(--ease-ios-out) both;
 }
 
-/* 深色 AI/洞察卡在纸面语境下沉为「墨色卡片」，形成纸墨对比 */
 .zone-life .insight-glow {
-  background:
-    radial-gradient(130% 90% at 0% 0%, rgba(139, 92, 246, 0.12), transparent 65%),
-    #33291f;
-  border: 1px solid rgba(72, 60, 44, 0.35);
-}
-.zone-life .ai-panel {
-  background:
-    radial-gradient(100% 80% at 50% 0%, rgba(180, 87, 62, 0.14), transparent 70%),
-    linear-gradient(180deg, #fbf8f0 0%, #f3ece0 100%);
-  border: 1px solid rgba(72, 60, 44, 0.16);
-}
-.zone-life .ai-bar {
-  background:
-    radial-gradient(120% 120% at 0% 50%, rgba(180, 87, 62, 0.12), transparent 70%),
-    #fbf8f0;
-  border: 1px solid rgba(72, 60, 44, 0.16);
-  box-shadow: 0 6px 18px rgba(96, 80, 56, 0.12);
+  background: #33291f;
+  box-shadow: 0 8px 24px rgba(96, 80, 56, 0.12);
 }
 
-/* 滚动条适配纸面 */
-.zone-life ::-webkit-scrollbar-thumb { background: rgba(72, 60, 44, 0.18); }
-.zone-life ::-webkit-scrollbar-thumb:hover { background: rgba(72, 60, 44, 0.32); }
-
-/* 骨架屏流光在浅底上用暖灰 */
-.zone-life .skeleton {
-  background: linear-gradient(90deg, rgba(72,60,44,.05) 25%, rgba(72,60,44,.1) 50%, rgba(72,60,44,.05) 75%);
-  background-size: 200% 100%;
+@keyframes life-page-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.zone-life .sidebar-glow {
-  background: radial-gradient(closest-side, rgba(180, 87, 62, 0.1), transparent 70%);
+@media (max-width: 640px) {
+  .zone-life .main-area {
+    background-size: 26px 26px;
+  }
 }
 
-@keyframes pulse-dot-life {
-  0%, 100% { box-shadow: 0 0 4px rgba(180,87,62,.5); transform: scale(1); }
-  50% { box-shadow: 0 0 10px rgba(180,87,62,.9), 0 0 18px rgba(180,87,62,.35); transform: scale(1.15); }
-}
-.zone-life .pulse-dot { animation: pulse-dot-life 2.4s ease-in-out infinite; }
 
 /* ─── 极致沉浸滚动条 ─── */
 ::-webkit-scrollbar {

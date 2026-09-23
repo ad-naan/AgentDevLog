@@ -56,23 +56,23 @@ export default function LifeReview() {
           : 'bg-[rgba(180,87,62,.78)]'
 
   return (
-    <div className="max-w-[880px] mx-auto pb-10 flex flex-col gap-6">
-      <header className="pt-2">
-        <h1 className="text-[24px] text-txt leading-snug">回忆册</h1>
+    <div className="max-w-[880px] mx-auto px-4 sm:px-6 pb-12 flex flex-col gap-7 sm:gap-9">
+      <header className="pt-5 sm:pt-7">
+        <h1 className="text-[28px] sm:text-[32px] leading-tight text-txt tracking-[-0.02em]">回忆册</h1>
         <p className="text-[12.5px] text-faint mt-1 italic">记下的日子都算数 · 翻一翻，看见自己</p>
       </header>
 
       {/* 数字一览：三张小卡 */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 divide-x divide-line border-y border-line py-4">
         {[
           { label: '连续记录', value: `${stats.streak}`, unit: '天', icon: '🔥' },
           { label: '这个月的日记', value: `${monthCount}`, unit: '页', icon: '📖' },
           { label: '愿望实现率', value: `${wishRate}`, unit: '%', icon: '🌟' },
         ].map((c) => (
-          <div key={c.label} className="rounded-2xl border border-line bg-card p-4 shadow-sm flex items-center gap-3.5">
-            <span className="text-[22px]">{c.icon}</span>
+          <div key={c.label} className="px-3 sm:px-5 first:pl-0 last:pr-0 flex items-center gap-2.5 sm:gap-3">
+            <span className="text-[19px] sm:text-[22px]">{c.icon}</span>
             <div>
-              <b className="block text-[22px] leading-none text-txt serif-num">
+                <b className="block text-[21px] sm:text-[24px] leading-none text-txt serif-num">
                 {c.value}
                 <span className="text-[11.5px] text-faint font-normal ml-1">{c.unit}</span>
               </b>
@@ -83,7 +83,7 @@ export default function LifeReview() {
       </div>
 
       {/* 记录热力：纸上的红点 */}
-      <section className="rounded-2xl border border-line bg-card p-5 shadow-sm">
+      <section className="rounded-[22px] border border-line bg-card/75 p-4 sm:p-6 shadow-[0_5px_18px_rgba(96,80,56,.05)]">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-[13.5px] font-semibold text-txt">留下痕迹的日子</h2>
           <div className="flex items-center gap-1.5 text-[10px] text-faint">
@@ -111,7 +111,7 @@ export default function LifeReview() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* 心情分布 */}
-        <section className="rounded-2xl border border-line bg-card p-5 shadow-sm">
+        <section className="rounded-[22px] border border-line bg-card/75 p-4 sm:p-6 shadow-[0_5px_18px_rgba(96,80,56,.05)]">
           <h2 className="text-[13.5px] font-semibold text-txt mb-4">心情的形状</h2>
           {moodDist.total === 0 ? (
             <p className="text-[12.5px] text-faint py-6 text-center italic">在日记里盖个心情章，这里就有形状了</p>
@@ -138,7 +138,7 @@ export default function LifeReview() {
         </section>
 
         {/* 随机一页旧日记 */}
-        <section className="rounded-2xl border border-line bg-card p-5 shadow-sm flex flex-col">
+        <section className="rounded-[22px] border border-line bg-card/75 p-4 sm:p-6 shadow-[0_5px_18px_rgba(96,80,56,.05)] flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-[13.5px] font-semibold text-txt">随手翻一页</h2>
             <button
@@ -168,7 +168,7 @@ export default function LifeReview() {
 
       {/* 已实现的心愿摘录 */}
       {granted > 0 && (
-        <section className="rounded-2xl border border-line bg-card p-5 shadow-sm">
+        <section className="rounded-[22px] border border-line bg-card/75 p-4 sm:p-6 shadow-[0_5px_18px_rgba(96,80,56,.05)]">
           <h2 className="text-[13.5px] font-semibold text-txt mb-3.5 flex items-center gap-2">
             <IconFlame width={14} height={14} className="text-accent" />
             实现过的 {granted} 个心愿

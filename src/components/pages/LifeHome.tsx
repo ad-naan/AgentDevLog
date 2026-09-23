@@ -86,20 +86,23 @@ export default function LifeHome() {
   }
 
   return (
-    <div className="max-w-[880px] mx-auto flex flex-col gap-6 pb-8">
+    <div className="max-w-[880px] mx-auto px-4 sm:px-6 pb-12 flex flex-col gap-8">
       {/* 问候 */}
-      <header className="pt-2">
-        <h1 className="text-[26px] leading-snug text-txt">
+      <header className="pt-4 sm:pt-6 flex items-end justify-between gap-4">
+           <h1 className="text-[28px] sm:text-[32px] leading-tight text-txt">
           {greet()}，{s.user.name.split(' ')[0]}
         </h1>
         <p className="text-[13px] text-faint mt-1 italic">{todayStr} · 不赶时间，慢慢记</p>
       </header>
 
       {/* 今日速记 */}
-      <section className="rounded-2xl border border-line bg-card p-5 shadow-sm">
-        <div className="flex items-center gap-2 mb-3 text-dim">
-          <IconHome width={15} height={15} className="text-accent" />
-          <span className="text-[13px]">此刻的念头、小事、心情，随手写下</span>
+      <section className="relative overflow-hidden rounded-[22px] border border-accent/25 bg-card px-4 py-5 sm:p-7 shadow-[0_10px_30px_rgba(96,80,56,.08)]">
+        <div className="flex items-center justify-between gap-3 mb-5">
+          <div className="flex items-center gap-2 text-dim">
+            <IconHome width={15} height={15} className="text-accent" />
+            <span className="text-[13px]">此刻，想留下些什么？</span>
+          </div>
+          <span className="text-[11px] text-faint">写一句也算</span>
         </div>
         <textarea
           value={text}
@@ -109,14 +112,14 @@ export default function LifeHome() {
           }}
           placeholder="比如：傍晚沿江走了半小时，风很舒服…"
           rows={3}
-          className="w-full bg-inset border border-line rounded-xl px-3.5 py-3 text-[13.5px] text-txt placeholder:text-faint outline-none resize-none focus:border-accent/40 transition-colors"
+          className="w-full min-h-[118px] bg-inset/70 border border-line rounded-2xl px-4 py-4 text-[15px] text-txt placeholder:text-faint outline-none resize-none focus:border-accent/50 focus:bg-card transition-colors leading-[1.8]"
         />
-        <div className="flex items-center gap-2 mt-3 flex-wrap">
+        <div className="flex items-center gap-2 mt-4 flex-wrap">
           {MOODS.map((m) => (
             <button
               key={m}
               onClick={() => setMood(mood === m ? '' : m)}
-              className={`w-8 h-8 rounded-full text-[15px] flex items-center justify-center border transition-all btn-press ${
+              className={`w-9 h-9 rounded-full text-[15px] flex items-center justify-center border transition-all btn-press ${
                 mood === m ? 'border-accent/50 bg-accent/10 scale-110' : 'border-line hover:border-line2'
               }`}
               aria-label={`心情 ${m}`}
@@ -127,15 +130,15 @@ export default function LifeHome() {
           <button
             onClick={submit}
             disabled={busy || !(text.trim() || mood)}
-            className="ml-auto px-4 h-9 rounded-full bg-accent/15 border border-accent/30 text-accent text-[12.5px] font-medium btn-press hover:bg-accent/25 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            className="ml-auto w-full sm:w-auto px-5 h-10 rounded-xl bg-accent text-[#fdf9f0] text-[12.5px] font-medium btn-press hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed transition-all">
             {busy ? '记录中…' : '记下来 ⌘↵'}
           </button>
         </div>
       </section>
 
-      <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-[1.45fr_1fr] gap-5">
         {/* 最近日记 */}
-        <section className="rounded-2xl border border-line bg-card p-5">
+        <section className="border-t border-line pt-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-[14px] font-semibold text-txt flex items-center gap-2">
               <IconLog width={14} height={14} className="text-accent" />最近的日记
@@ -170,7 +173,7 @@ export default function LifeHome() {
         </section>
 
         {/* 小心愿 */}
-        <section className="rounded-2xl border border-line bg-card p-5 h-fit">
+        <section className="border-t border-line pt-5 h-fit">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-[14px] font-semibold text-txt flex items-center gap-2">
               <IconCheck width={14} height={14} className="text-accent" />小心愿
