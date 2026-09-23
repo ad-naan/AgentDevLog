@@ -42,7 +42,7 @@ export default function Reports() {
     if (busy) return
     setBusy(true)
     try {
-      const res = await fetch('/api/reports/generate', {
+      const res = await api('/api/reports/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scope, period, manualNotes: period === 'week' ? manualNotes : '' }),

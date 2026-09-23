@@ -1,6 +1,6 @@
 import { prisma } from './prisma'
 import { today } from './types'
-import { requireLLMConfig, chatJSON, LLMNotConfiguredError } from './llm'
+import { requireLLMConfig, chatJSON } from './llm'
 
 // ─── Agent 层：所有 AI 能力的唯一实现，纯模型驱动，零规则回退 ───
 // 每个能力 = 一次结构化 LLM 调用 + 数据库落库，失败即抛错。
@@ -10,19 +10,7 @@ const asStrings = (v: unknown, max: number): string[] | null =>
     ? v.map(String).slice(0, max)
     : null
 
-// ─── ⑤ 工作台助手：意图路由 + 联动各 Agent ───
-
-export interface AssistantTurn {
-  role: 'user' | 'assistant'
-  content: string
-}
-
-export interface AssistantResult {
-  reply: string
-  actions: string[]
-}
-
-// ─── ⑤ 工作台助手：tool-calling agent loop ───
+// ─── 工作台助手：tool-calling agent loop ───
 // 每轮让模型在「调用一个工具」或「直接回答」之间决策，工具结果回灌给模型，
 // 最多 6 步。模型可以自主组合多个工具（如：查日志 → 查待办 → 生成报告）。
 
@@ -220,7 +208,6 @@ export async function runAssistant(
         (decision.args && typeof decision.args === 'object' ? decision.args : {}) as Record<string, unknown>,
       )
     } catch (e) {
-      if (e instanceof LLMNotConfiguredError) throw e
       outcome = { observation: `工具执行失败：${e instanceof Error ? e.message : '未知错误'}` }
     }
     if (outcome.action) actions.push(outcome.action)
@@ -727,6 +714,3 @@ ${todaysActivities.slice(0, 15).map((a) => `- [${a.type}/${a.repo}] ${a.title}`)
     { temperature: 0.5 },
   )
 }
-
-// ─── 导出未配置错误，供路由层统一转换 ───
-export { LLMNotConfiguredError }

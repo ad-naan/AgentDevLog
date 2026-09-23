@@ -267,9 +267,6 @@ export default function Analytics() {
               value: '20:00 - 22:00',
               desc: '该时段的代码提交量占全天的 42%，建议在此时间集中处理复杂架构与核心业务任务。',
               foot: '相比其他时段 +68%',
-              value: '20:00 - 22:00',
-              desc: '该时段的代码提交量占全天的 42%，适合集中处理复杂架构与核心业务任务。',
-              foot: '相比其他时段 +68%',
               Icon: IconClock,
             },
             {
@@ -280,8 +277,6 @@ export default function Analytics() {
               desc: '新功能开发占比 58%，其次是代码重构 22%，问题修复 12%。',
               foot: '新功能持续增长',
               Icon: IconChart,
-              foot: '新功能持续增长',
-              Icon: IconChart,
             },
             {
               title: '上下文切换',
@@ -290,7 +285,6 @@ export default function Analytics() {
               value: '3.4 个仓库/天',
               desc: '平均每天在 3.4 个仓库之间切换，建议规划专注工作块，减少上下文切换。',
               foot: '可通过工作区优化提升效率',
-              Icon: IconSpark,
               Icon: IconSpark,
             },
           ].map((c) => (

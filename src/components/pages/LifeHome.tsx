@@ -27,6 +27,7 @@ export default function LifeHome() {
   const [text, setText] = useState('')
   const [mood, setMood] = useState('')
   const [busy, setBusy] = useState(false)
+  const now = useMemo(() => new Date().getTime(), [])
 
   const diaries = useMemo(
     () => (s ? s.logs.filter((l) => l.scope === 'life').sort((a, b) => b.updatedAt - a.updatedAt) : [] as LogDTO[]),
@@ -42,7 +43,7 @@ export default function LifeHome() {
     const acts = scopedActivities(s, 'life').filter((a) => a.type !== 'log')
     const repos = watchedReposFor(s, 'life')
     // 近 30 天各仓库 commit 数
-    const since = Date.now() - 30 * 864e5
+    const since = now - 30 * 864e5
     const perRepo: Record<string, number> = {}
     for (const a of acts) {
       if (a.ts >= since && a.type === 'commit') perRepo[a.repo] = (perRepo[a.repo] || 0) + 1
@@ -54,7 +55,7 @@ export default function LifeHome() {
       heat: heatmap(s, 18, 'life'),
       perRepo: Object.entries(perRepo).sort((x, y) => y[1] - x[1]).slice(0, 5),
     }
-  }, [s])
+  }, [s, now])
   const todayStr = useMemo(() => {
     const d = new Date()
     return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 · 星期${'日一二三四五六'[d.getDay()]}`

@@ -3,12 +3,14 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStore } from '../StoreProvider'
+import { useToast, apiError } from '../Toast'
 import type { Scope } from '@/lib/types'
 import { IconGear, IconSpark, IconClose } from '../icons'
 import PageSkeleton from '../PageSkeleton'
 
 export default function Settings() {
   const { s, refresh, api } = useStore()
+  const toast = useToast()
   const router = useRouter()
   const [repoInput, setRepoInput] = useState('')
   const [repoInputLife, setRepoInputLife] = useState('')
@@ -52,7 +54,11 @@ export default function Settings() {
     setBusy(true)
     setStatus(`已添加 ${r}，正在同步该仓库最近活动…`)
     try {
-      const res = await fetch('/api/sync', { method: 'POST' })
+      const res = await api('/api/sync', { method: 'POST' })
+      if (!res.ok) {
+        setStatus(await apiError(res))
+        return
+      }
       const j = (await res.json()) as { fetched: number; errors: string[] }
       await refresh()
       setStatus(
@@ -77,7 +83,12 @@ export default function Settings() {
     setStatus(null)
     if (token.trim()) await patch({ githubToken: token.trim() })
     if (ghUser.trim()) await patch({ githubUser: ghUser.trim().replace(/^@/, '') })
-    const r = await fetch('/api/sync', { method: 'POST' })
+    const r = await api('/api/sync', { method: 'POST' })
+    if (!r.ok) {
+      setStatus(await apiError(r))
+      setBusy(false)
+      return
+    }
     const j = (await r.json()) as { fetched: number; errors: string[] }
     await refresh()
     setBusy(false)
@@ -101,10 +112,12 @@ export default function Settings() {
       llmModel: llmModel || s.settings.llmModel,
       llmApiKey: llmApiKey || s.settings.llmApiKey,
     })
-    const r = await fetch('/api/llm/test', { method: 'POST' })
-    const j = (await r.json()) as { ok: boolean; message: string }
+    const r = await api('/api/llm/test', { method: 'POST' })
+    const j = (await r.json().catch(() => ({}))) as { ok?: boolean; message?: string; error?: string }
+    const message = j.message || j.error || `请求失败（${r.status}）`
     setLlmBusy(false)
-    setLlmStatus(j.message)
+    setLlmStatus(message)
+    if (!r.ok) toast(message, 'error')
   }
 
   const reset = async () => {

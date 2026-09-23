@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ensureUser } from '@/lib/data'
 import { runAssistant, agentLogTips, type AssistantTurn } from '@/lib/agent'
+import { llmErrorResponse } from '@/lib/http'
 
 export async function POST(req: Request) {
   const userId = await ensureUser()
@@ -20,13 +21,19 @@ export async function POST(req: Request) {
       orderBy: { ts: 'desc' }, take: 15,
       select: { type: true, title: true, repo: true },
     })
-    const tips = await agentLogTips(
-      userId,
-      sc,
-      draft,
-      acts.map((a) => ({ type: a.type, title: a.title, repo: a.repo })),
-    )
-    return NextResponse.json({ tips })
+    try {
+      const tips = await agentLogTips(
+        userId,
+        sc,
+        draft,
+        acts.map((a) => ({ type: a.type, title: a.title, repo: a.repo })),
+      )
+      return NextResponse.json({ tips })
+    } catch (e) {
+      const mapped = llmErrorResponse(e)
+      if (mapped) return mapped
+      throw e
+    }
   }
 
   // 工作台助手（默认）
@@ -39,6 +46,12 @@ export async function POST(req: Request) {
       })
       .slice(-12)
     : []
-  const r = await runAssistant(userId, sc, turns as AssistantTurn[])
-  return NextResponse.json(r)
+  try {
+    const r = await runAssistant(userId, sc, turns as AssistantTurn[])
+    return NextResponse.json(r)
+  } catch (e) {
+    const mapped = llmErrorResponse(e)
+    if (mapped) return mapped
+    throw e
+  }
 }

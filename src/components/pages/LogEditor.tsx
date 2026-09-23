@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../StoreProvider'
+import { apiError } from '../Toast'
 import { scopedActivities, today } from '@/lib/types'
 import {
   IconBulb, IconSpark, IconMoodBad, IconMood,
@@ -82,12 +83,16 @@ export default function LogEditor() {
   const [dirty, setDirty] = useState(false)
   const serverContent = log?.content ?? ''
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDraft(serverContent)
     setDirty(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selDate, scope])
   useEffect(() => {
-    if (!dirty) setDraft(serverContent)
+    if (!dirty) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDraft(serverContent)
+    }
   }, [serverContent, dirty])
   const history = useMemo(
     () => (s ? s.logs.filter((l) => l.scope === scope).slice().sort((a, b) => b.date.localeCompare(a.date)) : []),
@@ -190,7 +195,7 @@ export default function LogEditor() {
         }),
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error((data as { error?: string }).error || `请求失败 (${res.status})`)
+      if (!res.ok) throw new Error((data as { error?: string }).error || await apiError(res))
       setTips((data as { tips?: string[] }).tips || [])
     } catch (e) {
       setTips([])

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from './StoreProvider'
 import { IconSpark, IconClose } from './icons'
+import { apiError } from '@/lib/client-api'
 
 interface Msg {
   role: 'user' | 'assistant'
@@ -10,11 +11,18 @@ interface Msg {
   actions?: string[]
 }
 
-const QUICK_PROMPTS = [
-  '帮我生成今天的日报',
-  '记一条待办：明天上午评审 PRD',
-  '总结今日的工作产出与提交',
-]
+const QUICK_PROMPTS = {
+  work: [
+    '帮我生成今天的日报',
+    '记一条待办：明天上午评审 PRD',
+    '总结今日的工作产出与提交',
+  ],
+  life: [
+    '帮我复盘今天的生活记录',
+    '记一条心愿：周末去公园散步',
+    '从最近的记录里找一个值得坚持的习惯',
+  ],
+} as const
 
 export default function Assistant() {
   const { scope, refresh, s } = useStore()
@@ -23,13 +31,23 @@ export default function Assistant() {
     {
       role: 'assistant',
       content:
-        '你好，我是工作台 AI 助手。可以直接向我下达指令，例如「帮我记一条待办：明天评审 PRD」「生成今天的日报」「把这段需求拆解一下：…」，我会自动执行并联动各页面数据。',
+        '你好，我是工作台 AI 助手。可以直接向我下达指令，我会读取当前分区的数据并联动日志、待办、报告等功能。',
     },
   ])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const llmOn = !!(s?.settings.llmBaseUrl && s?.settings.llmModel && s?.settings.llmApiKey)
+  const quickPrompts = [
+    ...QUICK_PROMPTS[scope],
+    ...(scope === 'work'
+      ? s?.logs.some((l) => l.scope === scope && l.date === new Date().toISOString().slice(0, 10))
+        ? ['把今天的日志整理成明日行动清单']
+        : ['我今天还没写日志，帮我根据活动整理一个记录草稿']
+      : s?.todos.some((t) => t.scope === scope && !t.done)
+        ? ['帮我从未完成的心愿里挑一个本周可以行动的']
+        : ['我最近还没有心愿，帮我想一个轻松可执行的小目标']),
+  ]
 
   // 命令面板 / 全局唤起
   useEffect(() => {
@@ -51,11 +69,19 @@ export default function Assistant() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scope, history: history.map(({ role, content }) => ({ role, content })) }),
       })
+      if (!r.ok) {
+        const message = await apiError(r)
+        setMsgs((m) => [...m, { role: 'assistant', content: message }])
+        return
+      }
       const j = (await r.json()) as { reply: string; actions: string[] }
       setMsgs((m) => [...m, { role: 'assistant', content: j.reply, actions: j.actions }])
       if (j.actions?.length) await refresh()
-    } catch {
-      setMsgs((m) => [...m, { role: 'assistant', content: '请求失败，请稍后重试。' }])
+    } catch (error) {
+      setMsgs((m) => [...m, {
+        role: 'assistant',
+        content: error instanceof Error ? `请求失败：${error.message}` : '请求失败，请稍后重试。',
+      }])
     } finally {
       setBusy(false)
       requestAnimationFrame(() => scrollRef.current?.scrollTo({ top: 1e6, behavior: 'smooth' }))
@@ -139,7 +165,7 @@ export default function Assistant() {
           {/* 常用快捷提示词 */}
           {msgs.length <= 2 && (
             <div className="px-3.5 pb-2 flex gap-1.5 flex-wrap">
-              {QUICK_PROMPTS.map((qp) => (
+              {quickPrompts.map((qp) => (
                 <button
                   key={qp}
                   onClick={() => send(qp)}

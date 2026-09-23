@@ -67,12 +67,4 @@ export function useToast() {
   return useContext(Ctx).toast
 }
 
-/** 从 fetch 响应提取错误信息（约定后端 { error } 格式） */
-export async function apiError(res: Response): Promise<string> {
-  try {
-    const j = await res.json() as { error?: string }
-    return j.error || `请求失败（${res.status}）`
-  } catch {
-    return `请求失败（${res.status}）`
-  }
-}
+export { apiError } from '@/lib/client-api'

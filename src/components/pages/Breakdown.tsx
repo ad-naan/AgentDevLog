@@ -88,7 +88,7 @@ export default function Breakdown() {
     setError(null)
     setBd({ ...bd, status: 'running' })
     try {
-      const res = await fetch('/api/breakdowns', {
+      const res = await api('/api/breakdowns', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ requirement: bd.requirement, mode: bd.mode }),

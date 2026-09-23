@@ -10,7 +10,6 @@ import { heatmap, todayStats, today } from '@/lib/types'
 import type { LogDTO } from '@/lib/types'
 
 const MOOD_FACE: Record<number, string> = { 5: '😄', 4: '🙂', 3: '😐', 2: '😕', 1: '😢' }
-const WEEK = '日一二三四五六'
 
 const preview = (md: string) => md.replace(/[#>*`\-\n]/g, ' ').replace(/\s+/g, ' ').trim()
 

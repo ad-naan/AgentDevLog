@@ -61,9 +61,9 @@ const TYPE_STYLE: Record<string, { label: string; Icon: typeof IconLog; ic: stri
   issue: { label: 'Issue', Icon: IconGitIssue, ic: 'bg-white/[0.05] text-dim', dot: 'bg-purple', tc: 'text-dim' },
 }
 
-const feedHref = (f: ActivityDTO): { href: string; external: boolean } => {
-  if (f.type === 'log') return { href: '/work/logs', external: false }
-  if (!f.repo.includes('/')) return { href: '/work/analytics', external: false }
+const feedHref = (f: ActivityDTO, scope: 'work' | 'life'): { href: string; external: boolean } => {
+  if (f.type === 'log') return { href: `/${scope}/logs`, external: false }
+  if (!f.repo.includes('/')) return { href: `/${scope}/analytics`, external: false }
   if (f.type === 'commit') return { href: `https://github.com/${f.repo}/commits`, external: true }
   if (f.type === 'pr') return { href: `https://github.com/${f.repo}/pulls`, external: true }
   return { href: `https://github.com/${f.repo}/issues`, external: true }
@@ -151,7 +151,7 @@ export default function Dashboard() {
     if (insightBusy) return
     setInsightBusy(true)
     try {
-      const res = await fetch('/api/insight', {
+      const res = await api('/api/insight', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scope }),
@@ -173,7 +173,7 @@ export default function Dashboard() {
     if (reportBusy) return
     setReportBusy(period)
     try {
-      const res = await fetch('/api/reports/generate', {
+      const res = await api('/api/reports/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scope, period }),
@@ -183,7 +183,7 @@ export default function Dashboard() {
         return
       }
       toast(period === 'day' ? '日报已生成，正在打开报告中心…' : '周报已生成，正在打开报告中心…', 'success')
-      router.push('/work/reports')
+      router.push(`/${scope}/reports`)
     } finally {
       setReportBusy(null)
     }
@@ -332,7 +332,7 @@ export default function Dashboard() {
               <IconReport className="w-3.5 h-3.5" />
               {reportBusy === 'week' ? '生成中…' : '生成周报'}
             </button>
-            <Link href="/work/reports" className="text-[12px] text-faint hover:text-dim transition-colors px-1">
+            <Link href={`/${scope}/reports`} className="text-[12px] text-faint hover:text-dim transition-colors px-1">
               历史报告 →
             </Link>
           </div>
@@ -348,7 +348,7 @@ export default function Dashboard() {
             </span>
             <div className="ml-auto flex items-center gap-3">
               <span className="text-[11.5px] text-faint font-mono">{feed.length} 条</span>
-              <Link href="/work/logs" className="text-[11.5px] text-dim hover:text-accent transition-colors flex items-center gap-1">
+              <Link href={`/${scope}/logs`} className="text-[11.5px] text-dim hover:text-accent transition-colors flex items-center gap-1">
                 查看全部 <span className="text-[10px]">→</span>
               </Link>
             </div>
@@ -377,7 +377,7 @@ export default function Dashboard() {
                 <div className="flex flex-col gap-1">
                   {feed.map((f) => {
                     const st = TYPE_STYLE[f.type] || TYPE_STYLE.log
-                    const target = feedHref(f)
+                    const target = feedHref(f, scope)
                     return (
                       <div key={f.id} className="relative flex items-start gap-4 py-2.5 group rounded-xl px-2 hover:bg-white/[0.02] transition-colors">
                         {/* 节点图标 */}
@@ -562,7 +562,7 @@ export default function Dashboard() {
         <div className="bg-card border border-line rounded-2xl p-4">
           <div className="flex items-center justify-between mb-2.5">
             <b className="text-[13px]">待办概览</b>
-            <Link href="/work/todos" className="text-[11px] text-faint hover:text-dim font-mono">
+            <Link href={`/${scope}/todos`} className="text-[11px] text-faint hover:text-dim font-mono">
               前往 TodoList ›
             </Link>
           </div>
@@ -584,7 +584,7 @@ export default function Dashboard() {
 
         {/* GitHub 同步状态小卡片 */}
         <Link
-          href="/work/settings"
+          href={`/${scope}/settings`}
           className="bg-card border border-line rounded-2xl px-4 py-3.5 flex items-center gap-3 hover:border-line2 transition-colors group">
           <div className="w-8 h-8 rounded-xl bg-white/[0.04] border border-line flex items-center justify-center text-txt shrink-0">
             <svg viewBox="0 0 16 16" width={18} height={18} fill="currentColor">

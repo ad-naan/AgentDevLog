@@ -33,7 +33,6 @@ export default function LifeLogs() {
   const [draft, setDraft] = useState('')
   const [creating, setCreating] = useState(false)
   const [newText, setNewText] = useState('')
-  const [pendingDate, setPendingDate] = useState<string | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const entries = useMemo(
@@ -47,16 +46,6 @@ export default function LifeLogs() {
   )
 
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current) }, [])
-
-  // 新建日记落到 store 后自动翻开
-  useEffect(() => {
-    if (!pendingDate || !s) return
-    const created = s.logs.find((l) => l.scope === 'life' && l.date === pendingDate)
-    if (created) {
-      setPendingDate(null)
-      openEntry(created)
-    }
-  }, [pendingDate, s])
 
   if (!s) return <PageSkeleton type="logs" />
 
@@ -105,10 +94,10 @@ export default function LifeLogs() {
     }
     setCreating(false)
     setNewText('')
-    setPendingDate(date)
+    const created = entries.find((l) => l.date === date)
+    if (created) openEntry(created)
   }
 
-  const editingLog = entries.find((l) => l.id === editing) ?? null
 
   return (
     <div className="max-w-[760px] mx-auto pb-10 flex flex-col gap-6">
