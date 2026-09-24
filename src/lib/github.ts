@@ -129,7 +129,7 @@ function buildCommitDesc(message: string, files?: CommitDetail['files']): string
 
 /**
  * 真实 GitHub 同步（并行版）：
- * - 提交：枚举仓库全部分支（最多 12 条），按分支逐 commit 拉取，
+ * - 提交：枚举仓库全部分支（最多 30 条），按分支逐 commit 拉取，
  *   新增 commit 再补拉详情（提交正文 + 改动文件）供报告深入分析；
  * - PR / Issue：走 Events API；
  * - 新增关注仓库自动回填最近 14 天（since 与仓库无关）；
@@ -209,7 +209,7 @@ export async function syncGithub(userId: number) {
     // 分支列表失败时降级：改用仓库默认分支，保证主开发线的提交不丢
     let branchNames: string[]
     if (branches) {
-      branchNames = branches.map((b) => b.name).filter(Boolean).slice(0, 12)
+      branchNames = branches.map((b) => b.name).filter(Boolean).slice(0, 30)
     } else {
       const info = await gh<{ default_branch?: string }>(`${GH}/repos/${repo}`, headers, ctx)
       if (info?.default_branch) {
