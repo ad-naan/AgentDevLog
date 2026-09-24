@@ -34,6 +34,8 @@ export default function LifeLogs() {
   const [creating, setCreating] = useState(false)
   const [newText, setNewText] = useState('')
   const [confirmRip, setConfirmRip] = useState<number | null>(null)
+  // 正在撕下的那一页：本地持有到动画播完，避免被 store 刷新打断
+  const [ripping, setRipping] = useState<{ item: LogDTO; at: number }[]>([])
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const entries = useMemo(
@@ -45,6 +47,17 @@ export default function LifeLogs() {
         : ([] as LogDTO[]),
     [s],
   )
+
+  // 时间线渲染序列：撕下的页插回原位置，动画播完才移除
+  const pages = useMemo(() => {
+    const rows = entries.map((l) => ({ item: l, leaving: ripping.some((r) => r.item.id === l.id) }))
+    for (const r of ripping) {
+      if (!rows.some((x) => x.item.id === r.item.id)) {
+        rows.splice(Math.min(r.at, rows.length), 0, { item: r.item, leaving: true })
+      }
+    }
+    return rows
+  }, [entries, ripping])
 
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current) }, [])
 
@@ -81,7 +94,14 @@ export default function LifeLogs() {
   }
 
   const removeEntry = async (l: LogDTO) => {
+    // 先让这一页撕下飞走（本地持有），请求同时进行；动画最少播满 520ms
+    const at = Math.max(0, entries.findIndex((e) => e.id === l.id))
+    setRipping((r) => (r.some((x) => x.item.id === l.id) ? r : [...r, { item: l, at }]))
+    const startedAt = Date.now()
     const res = await api(`/api/logs/${l.id}`, { method: 'DELETE' })
+    const rest = 520 - (Date.now() - startedAt)
+    if (rest > 0) await new Promise((r) => setTimeout(r, rest))
+    setRipping((r) => r.filter((x) => x.item.id !== l.id))
     if (res.ok) {
       toast('这页日记撕掉了')
       setEditing(null)
@@ -162,7 +182,7 @@ export default function LifeLogs() {
       )}
 
       {/* 时间线 */}
-      {entries.length === 0 && !creating ? (
+      {pages.length === 0 && !creating ? (
         <div className="rounded-[22px] border border-dashed border-line2 bg-card/45 py-16 text-center">
           <p className="text-[28px] mb-3">📖</p>
           <p className="text-[13px] text-dim">本子还是空的</p>
@@ -173,22 +193,22 @@ export default function LifeLogs() {
           {/* 时间线竖线 */}
           <div aria-hidden className="absolute left-[7px] top-2 bottom-2 w-px bg-line" />
           <div className="flex flex-col gap-5">
-            {entries.map((l) => {
+            {pages.map(({ item: l, leaving }) => {
               const { day, month, week } = fmtDay(l.date)
               const mood = MOODS.find((m) => m[0] === l.mood)
               const open = editing === l.id
               return (
-                <article key={l.id} className="relative">
+                <article key={l.id} className={`relative ${leaving ? 'page-rip' : 'spring-in'}`}>
                   {/* 时间线节点 */}
                   <span
                     aria-hidden
-                    className={`absolute -left-6 top-5 w-[15px] h-[15px] rounded-full border-2 transition-colors ${
-                      open ? 'bg-accent border-accent' : 'bg-card border-line2'
+                    className={`timeline-dot absolute -left-6 top-5 w-[15px] h-[15px] rounded-full border-2 ${
+                      open ? 'is-open bg-accent border-accent' : 'bg-card border-line2'
                     }`}
                   />
                   <div
                     className={`bg-card border rounded-[22px] p-4 sm:p-6 shadow-[0_5px_18px_rgba(96,80,56,.05)] transition-all duration-200 ${
-                      open ? 'border-accent/35' : 'border-line hover:border-line2'
+                      open ? 'border-accent/35 paper-open' : 'border-line hover:border-line2'
                     }`}
                   >
                     {/* 纸页抬头 */}
@@ -235,7 +255,7 @@ export default function LifeLogs() {
                               onClick={() => ripEntry(l)}
                               className={`text-[11.5px] transition-colors px-2 py-1 rounded-full border ${
                                 confirmRip === l.id
-                                  ? 'text-red border-red/40 bg-red/10'
+                                  ? 'text-red border-red/40 bg-red/10 confirm-pulse'
                                   : 'text-faint hover:text-red border-transparent'
                               }`}
                             >

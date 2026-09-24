@@ -36,6 +36,8 @@ export default function LifeWishes() {
   const [busy, setBusy] = useState(false)
   const [showDone, setShowDone] = useState(false)
   const [letGoId, setLetGoId] = useState<number | null>(null)
+  // 正在弹跳离场的心愿：本地持有到动画播完，避免被 store 刷新打断
+  const [departing, setDeparting] = useState<{ item: TodoDTO; at: number }[]>([])
 
   const wishes = useMemo(
     () => (s ? s.todos.filter((t) => t.scope === 'life' && !t.done).sort((a, b) => b.createdAt - a.createdAt) : []),
@@ -45,6 +47,17 @@ export default function LifeWishes() {
     () => (s ? s.todos.filter((t) => t.scope === 'life' && t.done).sort((a, b) => b.updatedAt - a.updatedAt) : []),
     [s],
   )
+
+  // 心愿墙渲染序列：离场中的纸片插回原位置，动画播完才真正消失
+  const wall = useMemo(() => {
+    const rows = wishes.map((w) => ({ item: w, leaving: departing.some((d) => d.item.id === w.id) }))
+    for (const d of departing) {
+      if (!rows.some((r) => r.item.id === d.item.id)) {
+        rows.splice(Math.min(d.at, rows.length), 0, { item: d.item, leaving: true })
+      }
+    }
+    return rows
+  }, [wishes, departing])
 
   if (!s) return <PageSkeleton type="todos" />
 
@@ -77,7 +90,14 @@ export default function LifeWishes() {
   }
 
   const grant = async (t: TodoDTO) => {
+    // 先让纸片弹跳离场（本地持有），请求同时进行；动画最少播满 400ms
+    const at = Math.max(0, wishes.findIndex((w) => w.id === t.id))
+    setDeparting((d) => (d.some((x) => x.item.id === t.id) ? d : [...d, { item: t, at }]))
+    const startedAt = Date.now()
     const res = await patch(t, { done: true })
+    const rest = 400 - (Date.now() - startedAt)
+    if (rest > 0) await new Promise((r) => setTimeout(r, rest))
+    setDeparting((d) => d.filter((x) => x.item.id !== t.id))
     if (res.ok) toast(`「${t.title.slice(0, 16)}」实现啦 🎉`, 'success')
     else toast(await apiError(res), 'error')
   }
@@ -145,7 +165,7 @@ export default function LifeWishes() {
       </section>
 
       {/* 心愿墙：CSS 多列瀑布 */}
-      {wishes.length === 0 ? (
+      {wall.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-line2 bg-card/50 py-16 text-center">
           <p className="text-[28px] mb-3">🌠</p>
           <p className="text-[13px] text-dim">墙上还空着</p>
@@ -153,12 +173,14 @@ export default function LifeWishes() {
         </div>
       ) : (
         <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 [&>*]:mb-4">
-          {wishes.map((t) => {
+          {wall.map(({ item: t, leaving }) => {
             const lv = LEVELS.find((l) => l.key === t.priority) ?? LEVELS[1]
             return (
               <div
                 key={t.id}
-                className={`break-inside-avoid rounded-xl border px-4 py-4 shadow-sm transition-transform duration-200 hover:-translate-y-0.5 hover:rotate-[0.4deg] ${lv.cls}`}
+                className={`break-inside-avoid wish-card rounded-xl border px-4 py-4 shadow-sm ${lv.cls} ${
+                  leaving ? 'wish-grant' : 'spring-in'
+                }`}
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <span className="text-[15px] leading-none">{pinOf(t.id)}</span>
@@ -168,7 +190,7 @@ export default function LifeWishes() {
                     aria-label={letGoId === t.id ? '确认放手' : '放手'}
                     className={`shrink-0 transition-colors rounded-full -mt-1.5 -mr-1.5 w-7 h-7 flex items-center justify-center btn-press ${
                       letGoId === t.id
-                        ? 'text-red bg-red/10 ring-1 ring-red/30'
+                        ? 'text-red bg-red/10 ring-1 ring-red/30 confirm-pulse'
                         : 'text-faint/70 hover:text-red hover:bg-red/10'
                     }`}
                   >
@@ -209,7 +231,7 @@ export default function LifeWishes() {
           {showDone && (
             <ul className="px-5 pb-4 flex flex-col gap-2 border-t border-line pt-3.5">
               {granted.map((t) => (
-                <li key={t.id} className="flex items-center gap-2.5 text-[12.5px]">
+                <li key={t.id} className="spring-in flex items-center gap-2.5 text-[12.5px]">
                   <span className="text-dim/60 line-through decoration-faint">{t.title}</span>
                   <span className="ml-auto text-[10.5px] text-faint shrink-0">{since(t.updatedAt)}实现</span>
                   <button onClick={() => patch(t, { done: false })} className="text-[10.5px] text-faint hover:text-accent transition-colors shrink-0">

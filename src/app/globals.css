@@ -20,9 +20,18 @@
   --color-red: #ff453a;
   --font-sans: var(--font-inter), var(--font-noto), -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
   --font-mono: var(--font-mono-jb), "SF Mono", ui-monospace, Consolas, monospace;
-  /* iOS 弹性曲线 */
+  /* iOS 弹性曲线（遗留：位移大、无回弹的场景） */
   --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-ios-out: cubic-bezier(0.16, 1, 0.3, 1);
+  /* ─── 弹簧物理缓动（scripts/gen-springs.mjs 生成：半隐式欧拉积分 F=-kx-cv，勿手改数值）─── */
+  /* 入场：k420/c31 · 420ms · 过冲 2.6% */
+  --ease-spring-gentle: linear(0.000, 0.028, 0.058, 0.096, 0.140, 0.189, 0.240, 0.294, 0.348, 0.401, 0.454, 0.506, 0.555, 0.602, 0.647, 0.689, 0.728, 0.764, 0.797, 0.828, 0.855, 0.880, 0.903, 0.922, 0.940, 0.955, 0.969, 0.980, 0.990, 0.998, 1.005, 1.011, 1.015, 1.019, 1.021, 1.023, 1.025, 1.025, 1.026, 1.025, 1.025, 1.024, 1.023, 1.022, 1.021, 1.020, 1.018, 1.017, 1.015, 1.014, 1.013, 1.012, 1.010, 1.009, 1.008, 1.007, 1.006, 1.005, 1.004, 1.004, 1.003, 1.003, 1.002, 1.002, 1.001, 1.001, 1.001, 1.000, 1.000, 1.000);
+  /* 按压回弹：k1000/c52 · 300ms · 过冲 1.0% */
+  --ease-spring-snappy: linear(0.000, 0.061, 0.122, 0.194, 0.272, 0.351, 0.429, 0.503, 0.573, 0.638, 0.696, 0.748, 0.793, 0.833, 0.867, 0.896, 0.921, 0.941, 0.958, 0.971, 0.982, 0.990, 0.996, 1.001, 1.005, 1.007, 1.009, 1.009, 1.010, 1.010, 1.009, 1.009, 1.008, 1.007, 1.007, 1.006, 1.005, 1.004, 1.004, 1.003, 1.003, 1.002, 1.002, 1.001, 1.001, 1.001, 1.001, 1.000, 1.000, 1.000);
+  /* 切换弹跳：k520/c26 · 462ms · 过冲 11.2% */
+  --ease-spring-bouncy: linear(0.000, 0.035, 0.074, 0.123, 0.180, 0.243, 0.310, 0.380, 0.450, 0.520, 0.587, 0.652, 0.714, 0.772, 0.825, 0.874, 0.918, 0.956, 0.990, 1.019, 1.044, 1.064, 1.080, 1.093, 1.102, 1.108, 1.111, 1.112, 1.111, 1.108, 1.103, 1.098, 1.091, 1.084, 1.076, 1.069, 1.061, 1.053, 1.045, 1.038, 1.031, 1.025, 1.019, 1.014, 1.009, 1.004, 1.001, 0.998, 0.995, 0.993, 0.991, 0.989, 0.988, 0.988, 0.987, 0.988, 0.988, 0.989, 0.989, 0.990, 0.991, 0.992, 0.992, 0.993, 0.994, 0.995, 0.996, 0.997, 0.997, 0.998, 0.999, 0.999, 1.000, 1.000, 1.000, 1.000);
+  /* 指示器滑移：k480/c34 · 402ms · 过冲 2.0% */
+  --ease-spring-glide: linear(0.000, 0.032, 0.065, 0.107, 0.156, 0.208, 0.264, 0.320, 0.377, 0.433, 0.488, 0.540, 0.590, 0.637, 0.681, 0.722, 0.760, 0.794, 0.825, 0.854, 0.879, 0.901, 0.921, 0.938, 0.954, 0.967, 0.978, 0.987, 0.995, 1.002, 1.007, 1.011, 1.014, 1.017, 1.018, 1.019, 1.020, 1.020, 1.020, 1.019, 1.019, 1.018, 1.017, 1.016, 1.015, 1.014, 1.012, 1.011, 1.010, 1.009, 1.008, 1.007, 1.006, 1.006, 1.005, 1.004, 1.003, 1.003, 1.002, 1.002, 1.002, 1.001, 1.001, 1.001, 1.000, 1.000, 1.000);
 }
 
 html, body {
@@ -100,7 +109,7 @@ html, body {
 }
 
 .zone-life .main-area > * {
-  animation: life-page-in .35s var(--ease-ios-out) both;
+  animation: life-page-in .38s var(--ease-spring-gentle) both;
 }
 
 .zone-life .insight-glow {
@@ -201,7 +210,7 @@ html, body {
   -webkit-backdrop-filter: blur(20px) saturate(1.3);
   border: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.24), 0 8px 24px -12px rgba(0, 0, 0, 0.4);
-  transition: border-color 0.28s var(--ease-ios-out), box-shadow 0.28s var(--ease-ios-out), transform 0.28s var(--ease-ios-out);
+  transition: border-color 0.28s var(--ease-spring-gentle), box-shadow 0.28s var(--ease-spring-gentle), transform 0.28s var(--ease-spring-gentle);
 }
 
 .glass-card:hover {
@@ -234,8 +243,7 @@ html, body {
   box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.5);
 }
 
-/* ─── 交互动画 ─── */
-
+/* ─── 交互动画：全部基于弹簧物理（曲线见 @theme --ease-spring-*） ─── */
 @keyframes toast-in {
   from { opacity: 0; transform: translateY(12px) scale(.96); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -244,18 +252,44 @@ html, body {
   from { opacity: 1; transform: translateY(0) scale(1); }
   to { opacity: 0; transform: translateY(8px) scale(.96); }
 }
-.toast-in { animation: toast-in .24s cubic-bezier(.21,1.02,.73,1) both; }
-.toast-out { animation: toast-out .24s ease-in both; }
+.toast-in { animation: toast-in .3s var(--ease-spring-bouncy) both; }
+.toast-out { animation: toast-out .18s cubic-bezier(.5, 0, .9, .6) both; }
 
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.fade-up { animation: fade-up .28s cubic-bezier(.16,1,.3,1) both; }
-.fade-up-1 { animation: fade-up .28s cubic-bezier(.16,1,.3,1) .05s both; }
-.fade-up-2 { animation: fade-up .28s cubic-bezier(.16,1,.3,1) .1s both; }
+.fade-up { animation: fade-up .3s var(--ease-spring-gentle) backwards; }
+.fade-up-1 { animation: fade-up .3s var(--ease-spring-gentle) .05s backwards; }
+.fade-up-2 { animation: fade-up .3s var(--ease-spring-gentle) .1s backwards; }
 
-/* 骨架屏炫光流光 */
+/* 列表项弹簧入场（心愿卡/日记条目等增量渲染） */
+@keyframes spring-in {
+  from { opacity: 0; transform: translateY(6px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.spring-in { animation: spring-in .32s var(--ease-spring-gentle) backwards; }
+
+/* 心情/开关按钮：选中时按弹簧曲线过冲放大，取消时同曲线回落；按压仍有回弹。
+   顺序很重要：:active 放最后，同特异度下覆盖 [aria-pressed] 的终态。 */
+.toggle-pop {
+  transition: transform .42s var(--ease-spring-bouncy), background-color .26s ease, border-color .26s ease;
+}
+.toggle-pop[aria-pressed='true'] {
+  transform: scale(1.1);
+}
+.toggle-pop:active {
+  transform: scale(.94);
+  transition: transform .1s cubic-bezier(.3, 0, 1, 1);
+}
+
+.btn-press {
+  transition: transform .3s var(--ease-spring-snappy), opacity .18s ease, background-color .22s ease, box-shadow .22s ease, border-color .22s ease;
+}
+.btn-press:active:not(:disabled) {
+  transform: scale(.96);
+  transition: transform .09s cubic-bezier(.3, 0, 1, 1), opacity .18s ease, background-color .22s ease, box-shadow .22s ease, border-color .22s ease;
+}
 @keyframes shimmer {
   from { background-position: -200% 0; }
   to { background-position: 200% 0; }
@@ -276,15 +310,6 @@ html, body {
 .dot-breath:nth-child(2) { animation-delay: .18s; }
 .dot-breath:nth-child(3) { animation-delay: .36s; }
 
-/* 按钮微压动效：iOS 触感 */
-.btn-press {
-  transition: transform .18s var(--ease-ios), opacity .18s ease, background-color .22s ease, box-shadow .22s ease, border-color .22s ease;
-}
-.btn-press:active:not(:disabled) {
-  transform: scale(.965);
-}
-
-/* AI 繁忙渐变流光 */
 @keyframes gradient-slide {
   0% { background-position: 0% 50%; }
   100% { background-position: 200% 50%; }
@@ -296,10 +321,10 @@ html, body {
 }
 
 @keyframes cmd-pop {
-  from { opacity: 0; transform: translateY(8px) scale(.98); }
+  from { opacity: 0; transform: translateY(10px) scale(.94); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
-.cmd-pop { animation: cmd-pop .18s cubic-bezier(.16,1,.3,1) both; }
+.cmd-pop { animation: cmd-pop .38s var(--ease-spring-bouncy) both; }
 
 /* 脉冲光斑点：收敛为柔和呼吸 */
 @keyframes pulse-dot {
@@ -319,3 +344,91 @@ html, body {
   51%, 100% { opacity: 0.15; }
 }
 .logo-cursor { animation: logo-cursor-blink 1.4s steps(1) infinite; }
+
+/* ─── 导航弹簧指示器：位置由 JS springLoop 驱动（保速度、可中断、拉伸变形），CSS 只负责形态 ─── */
+.nav-pill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  border-radius: 10px;
+  will-change: transform;
+  transform-origin: 50% 50%;
+  z-index: 0;
+  background: rgba(52, 199, 89, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+.zone-life .nav-pill {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  box-shadow: 0 1px 2px rgba(96, 80, 56, 0.1);
+}
+.nav-pill::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  width: 3px;
+  height: 16px;
+  margin-top: -8px;
+  border-radius: 9999px;
+  background: var(--color-accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-accent) 50%, transparent);
+}
+.zone-life .nav-pill::after { box-shadow: none; }
+
+/* 卡片悬浮物理：弹簧升力（替代线性 duration-200 的 -translate-y） */
+.card-lift {
+  transition: transform .32s var(--ease-spring-gentle), box-shadow .32s var(--ease-spring-gentle), border-color .22s ease;
+}
+.card-lift:hover {
+  transform: translateY(-2px);
+}
+
+/* ─── 生活区微交互：便利贴 · 日记纸页 · 时间线（全部弹簧物理） ─── */
+
+/* 便利贴被指尖按到的重量感：弹簧升力 + 微倾 */
+.wish-card {
+  transition: transform .38s var(--ease-spring-gentle), box-shadow .38s var(--ease-spring-gentle), border-color .22s ease;
+}
+.wish-card:hover {
+  transform: translateY(-2px) rotate(.5deg);
+  box-shadow: 0 10px 22px -12px rgba(96, 80, 56, .3);
+}
+
+/* 心愿实现：先微微蓄力，再弹跳离场 */
+@keyframes wish-grant {
+  0%   { opacity: 1; transform: scale(1) rotate(0deg) translateY(0); }
+  38%  { opacity: 1; transform: scale(1.055) rotate(-1.4deg) translateY(1px); }
+  100% { opacity: 0; transform: scale(.86) rotate(1.8deg) translateY(-8px); }
+}
+.wish-grant { animation: wish-grant .38s cubic-bezier(.34, 1.3, .64, 1) both; }
+
+/* 撕日记：先反向顷挫（预告），再沿页缝加速离去 */
+@keyframes page-rip {
+  0%   { opacity: 1; transform: rotate(0deg) translate(0, 0); }
+  20%  { opacity: 1; transform: rotate(-1.2deg) translate(-3px, 1px); }
+  100% { opacity: 0; transform: rotate(4deg) translate(30px, 8px); }
+}
+.page-rip { animation: page-rip .5s cubic-bezier(.4, 0, .6, .9) both; }
+
+/* 二次确认：一次弹跳脉冲，替代静态换色 */
+@keyframes confirm-pulse {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.16); }
+  100% { transform: scale(1); }
+}
+.confirm-pulse { animation: confirm-pulse .46s var(--ease-spring-bouncy); }
+
+/* 时间线节点：翻开这一页时弹簧放大 */
+.timeline-dot {
+  transition: transform .34s var(--ease-spring-bouncy), background-color .3s ease, border-color .3s ease;
+}
+.timeline-dot.is-open { transform: scale(1.22); }
+
+/* 纸页展开：内容浮现 */
+@keyframes paper-open {
+  from { opacity: 0; transform: translateY(-4px) scale(.995); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.paper-open { animation: paper-open .34s var(--ease-spring-gentle) backwards; }
+

@@ -121,8 +121,8 @@ export default function LifeHome() {
               onClick={() => setMood(mood === m ? '' : m)}
               aria-pressed={mood === m}
               aria-label={`心情 ${m}`}
-              className={`w-9 h-9 rounded-full text-[15px] flex items-center justify-center border transition-all btn-press ${
-                mood === m ? 'border-accent/50 bg-accent/10 scale-110' : 'border-line hover:border-line2 hover:bg-card-subtle'
+              className={`toggle-pop w-9 h-9 rounded-full text-[15px] leading-none flex items-center justify-center border ${
+                mood === m ? 'border-accent/50 bg-accent/10' : 'border-line hover:border-line2 hover:bg-card-subtle'
               }`}
             >
               {m}
@@ -131,7 +131,7 @@ export default function LifeHome() {
           <button
             onClick={submit}
             disabled={busy || !(text.trim() || mood)}
-            className="ml-auto w-full sm:w-auto px-5 h-10 rounded-xl bg-accent text-[#fdf9f0] text-[12.5px] font-medium btn-press hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            className="ml-auto w-full sm:w-auto px-5 h-10 rounded-xl bg-accent text-[#fdf9f0] text-[12.5px] font-medium btn-press hover:bg-accent-hover disabled:bg-accent/20 disabled:text-accent/70 disabled:cursor-not-allowed transition-all">
             {busy ? '记录中…' : '记下来 ⌘↵'}
           </button>
         </div>

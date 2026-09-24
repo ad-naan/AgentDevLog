@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   IconDashboard, IconLog, IconReport, IconCheck, IconSpark, IconChart,
   IconGear, IconSearch, IconBriefcase, IconHome, Logo, IconBell,
@@ -10,6 +10,7 @@ import {
 import { useStore } from './StoreProvider'
 import CommandPalette, { useCommandPalette } from './CommandPalette'
 import type { Scope } from '@/lib/types'
+import { SPRING, springLoop, prefersReducedMotion, type SpringLoop } from '@/lib/motion'
 
 interface NavItem { href: string; label: string; icon: typeof IconDashboard }
 
@@ -72,6 +73,52 @@ function Sidebar({ zone }: { zone: Scope }) {
   const router = useRouter()
   const { s } = useStore()
   const nav = zone === 'work' ? WORK_NAV : LIFE_NAV
+  const navRef = useRef<HTMLElement | null>(null)
+  const pillRef = useRef<HTMLSpanElement | null>(null)
+  const springRef = useRef<SpringLoop | null>(null)
+
+  // 激活项（含设置页）：无匹配时隐藏指示器
+  const activeHref = path === `/${zone}/settings` ? path : (nav.find((n) => n.href === path)?.href ?? null)
+
+  useEffect(() => {
+    const navEl = navRef.current
+    const pillEl = pillRef.current
+    if (!navEl || !pillEl) return
+    const target = Array.from(navEl.querySelectorAll<HTMLElement>('[data-nav-href]')).find(
+      (el) => el.dataset.navHref === activeHref,
+    )
+    if (!target || !activeHref) {
+      pillEl.style.opacity = '0'
+      return
+    }
+    pillEl.style.height = `${target.offsetHeight}px`
+    pillEl.style.opacity = '1'
+    const y = target.offsetTop
+    // 减少动态偏好：直接钉到位
+    if (prefersReducedMotion()) {
+      springRef.current?.stop()
+      springRef.current = null
+      pillEl.style.transform = `translateY(${y}px)`
+      return
+    }
+    // 复用同一弹簧实例：路由切换只改目标 → 保留当前速度，形成「保速度中断」
+    if (!springRef.current) {
+      springRef.current = springLoop(
+        SPRING.glide,
+        (value, velocity) => {
+          // 速度映射为纵向拉伸（squash & stretch）：越快越「液态」
+          const stretch = Math.min(Math.abs(velocity) * 0.00005, 0.13)
+          pillEl.style.transform = `translateY(${value}px) scaleY(${1 + stretch})`
+        },
+        y,
+      )
+    }
+    springRef.current.setTarget(y)
+  }, [activeHref])
+
+  // 卸载时停止调度
+  useEffect(() => () => springRef.current?.stop(), [])
+
   const logout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
     router.push('/login')
@@ -95,27 +142,18 @@ function Sidebar({ zone }: { zone: Scope }) {
 
       <ZoneSwitch zone={zone} />
 
-      {/* 导航菜单项 */}
-      <nav className="flex flex-col gap-1">
+      {/* 导航菜单项：背景胶囊由弹簧指示器驱动（保速度滑移 + 拉伸变形） */}
+      <nav ref={navRef} className="relative flex flex-col gap-1">
+        <span ref={pillRef} aria-hidden className="nav-pill" style={{ opacity: 0 }} />
         {nav.map((n) => {
           const on = path === n.href
           return (
             <Link
               key={n.href}
               href={n.href}
-              className={`group relative flex items-center gap-3 px-3 py-2 rounded-[10px] text-[13px] w-full text-left transition-all duration-300
-                ${on
-                  ? zone === 'life'
-                    ? 'bg-accent/10 text-txt font-medium shadow-[0_1px_2px_rgba(96,80,56,.1)]'
-                    : 'bg-[rgba(52,199,89,.1)] text-txt font-medium shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_1px_3px_rgba(0,0,0,.25)]'
-                  : 'text-dim hover:bg-white/[0.04] hover:text-txt'}`}>
-              {on && (
-                <span
-                  className={`absolute left-0.5 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-accent rounded-full ${
-                    zone === 'life' ? '' : 'shadow-[0_0_8px_rgba(52,199,89,.5)]'
-                  }`}
-                />
-              )}
+              data-nav-href={n.href}
+              className={`group relative z-10 flex items-center gap-3 px-3 py-2 rounded-[10px] text-[13px] w-full text-left transition-colors duration-300
+                ${on ? 'text-txt font-medium' : 'text-dim hover:bg-white/[0.04] hover:text-txt'}`}>
               <n.icon
                 width={16}
                 height={16}
@@ -128,13 +166,11 @@ function Sidebar({ zone }: { zone: Scope }) {
 
         <Link
           href={`/${zone}/settings`}
-          className={`group relative flex items-center gap-3 px-3 py-2 rounded-[10px] text-[13px] w-full text-left transition-all duration-300
+          data-nav-href={`/${zone}/settings`}
+          className={`group relative z-10 flex items-center gap-3 px-3 py-2 rounded-[10px] text-[13px] w-full text-left transition-colors duration-300
             ${path === `/${zone}/settings`
-              ? zone === 'life'
-                ? 'bg-accent/10 text-txt font-medium shadow-[0_1px_2px_rgba(96,80,56,.1)]'
-                : 'bg-white/[0.08] text-txt font-medium shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_1px_3px_rgba(0,0,0,.25)]'
+              ? 'text-txt font-medium'
               : 'text-dim hover:bg-white/[0.04] hover:text-txt'}`}>
-          {path === `/${zone}/settings` && <span className="absolute left-1 w-1 h-3.5 bg-accent rounded-full" />}
           <IconGear
             width={16}
             height={16}
