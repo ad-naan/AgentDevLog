@@ -22,11 +22,12 @@ const greet = () => {
 }
 
 export default function LifeHome() {
-  const { s, api } = useStore()
+  const { s, api, refresh } = useStore()
   const toast = useToast()
   const [text, setText] = useState('')
   const [mood, setMood] = useState('')
   const [busy, setBusy] = useState(false)
+  const [syncing, setSyncing] = useState(false)
   const now = useMemo(() => new Date().getTime(), [])
 
   const diaries = useMemo(
@@ -82,6 +83,29 @@ export default function LifeHome() {
       toast(result.kind === 'todo' ? `记下了小心愿「${result.title}」` : `写进今天的日记：${result.title}`, 'success')
     } finally {
       setBusy(false)
+    }
+  }
+
+  // 生活区就地同步并把结果告诉用户（原先只提示「点右上角」，而右上角在生活区没有入口）
+  const syncNow = async () => {
+    if (syncing) return
+    setSyncing(true)
+    try {
+      const res = await api('/api/sync', { method: 'POST' })
+      if (!res.ok) {
+        toast(await apiError(res), 'error')
+        return
+      }
+      const j = await res.json() as { fetched: number; errors: string[]; authFailed?: boolean }
+      // 授权失效标记由后端持久化 → 刷新 store，让顶栏与设置页同步反映真实状态
+      void refresh()
+      if (j.authFailed) toast(j.errors[0] ?? 'GitHub 授权已失效，请重新登录授权', 'error')
+      else if (j.errors.length) toast(`同步未完整完成：${j.errors.join('；')}`, 'error')
+      else toast(j.fetched > 0 ? `同步到 ${j.fetched} 条新动态` : '已是最新，没有新的动态', 'success')
+    } catch {
+      toast('同步失败，请稍后重试', 'error')
+    } finally {
+      setSyncing(false)
     }
   }
 
@@ -256,7 +280,15 @@ export default function LifeHome() {
             <div>
               <p className="text-[11.5px] text-faint mb-2.5">最近的热爱足迹</p>
               {oss.acts.length === 0 ? (
-                <p className="text-[12.5px] text-faint py-4 text-center">还没有同步到活动，点右上角同步试试</p>
+                <div className="py-4 flex flex-col items-center gap-2.5">
+                  <p className="text-[12.5px] text-faint text-center">还没有同步到活动</p>
+                  <button
+                    onClick={syncNow}
+                    disabled={syncing}
+                    className="btn-press px-3.5 h-8 rounded-full border border-accent/40 bg-accent/10 text-accent text-[12px] font-medium hover:bg-accent/20 disabled:opacity-60 disabled:cursor-wait transition-all">
+                    {syncing ? '同步中…' : '立即同步'}
+                  </button>
+                </div>
               ) : (
                 <ul className="flex flex-col gap-2.5">
                   {oss.acts.slice(0, 5).map((a) => (

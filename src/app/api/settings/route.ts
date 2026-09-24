@@ -22,7 +22,15 @@ export async function PATCH(req: Request) {
   if (/^([01]\d|2[0-3]):[0-5]\d$/.test(b.workEnd)) data.workEnd = b.workEnd
   if (Array.isArray(b.watchedRepos)) data.watchedRepos = b.watchedRepos.map(String)
   if (Array.isArray(b.watchedReposLife)) data.watchedReposLife = b.watchedReposLife.map(String)
-  if (typeof b.githubToken === 'string') data.githubToken = b.githubToken
+  if (typeof b.githubToken === 'string') {
+    data.githubToken = b.githubToken
+    // 手填 PAT 不具备续期能力：清空旧的 OAuth 续期凭据，避免拿已失效或会冲突的 refresh token 去换新
+    data.githubRefreshToken = ''
+    data.githubTokenExpiresAt = null
+    data.githubRefreshExpiresAt = null
+    // 新凭据等待下次同步验证，先清掉旧的失效标记
+    data.githubAuthFailed = false
+  }
   if (typeof b.githubUser === 'string') data.githubUser = b.githubUser.trim().replace(/^@/, '')
   for (const k of ['llmBaseUrl', 'llmModel', 'llmApiKey'] as const) {
     if (typeof b[k] === 'string') data[k] = (b[k] as string).trim()

@@ -81,6 +81,13 @@ export interface AppState {
     watchedReposLife: string[]
     githubToken: string
     githubUser: string
+    /** access token 到期时间戳；null = 长期令牌（PAT / OAuth App），不会自动过期 */
+    githubTokenExpiresAt: number | null
+    /** 是否具备自动续期能力（持有未过期的 refresh token） */
+    githubAutoRenew: boolean
+    /** 最近一次同步是否被 GitHub 拒绝（401），需重新授权 */
+    githubAuthFailed: boolean
+
     languages: [string, number, number][]
     llmBaseUrl: string
     llmModel: string

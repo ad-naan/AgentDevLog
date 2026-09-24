@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { setSessionCookie } from '@/lib/auth'
 import { OAUTH_STATE_COOKIE } from '@/lib/auth-shared'
+import { exchangeCode, tokenPersistData } from '@/lib/github-auth'
 
 // GET /api/auth/callback → GitHub 授权回调：校验 state → 换 token → 拉用户 → 落库 → 建会话
 export async function GET(req: Request) {
@@ -29,18 +30,8 @@ export async function GET(req: Request) {
   }
 
   try {
-    // 1) code 换 access_token
-    const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({
-        client_id: clientId,
-        client_secret: clientSecret,
-        code,
-        redirect_uri: `${origin.replace(/\/+$/, '')}/api/auth/callback`,
-      }),
-    })
-    const tokenJson = (await tokenRes.json()) as { access_token?: string; error?: string }
+    // 1) code 换 access_token（GitHub App 开启「用户令牌过期」时，这里会一并拿到 refresh token）
+    const tokenJson = await exchangeCode(code, `${origin.replace(/\/+$/, '')}/api/auth/callback`)
     const accessToken = tokenJson.access_token
     if (!accessToken) {
       return NextResponse.redirect(`${loginUrl}?error=token`)
@@ -94,11 +85,13 @@ export async function GET(req: Request) {
           },
         })
 
-    // 已存在的用户：更新其 GitHub token（保持同步可用），不覆盖手填配置的其它字段
+    // 已存在的用户：更新其 GitHub 凭据（含续期信息），不覆盖手填配置的其它字段。
+    // tokenPersistData 在没有 refresh token 时会清空续期字段，因此「长期令牌」也是干净状态。
+    const tokenData = tokenPersistData(tokenJson)
     await prisma.settings.upsert({
       where: { userId: user.id },
-      update: { githubToken: accessToken, githubUser: gh.login },
-      create: { userId: user.id, githubToken: accessToken, githubUser: gh.login },
+      update: { ...tokenData, githubUser: gh.login, githubAuthFailed: false },
+      create: { userId: user.id, ...tokenData, githubUser: gh.login, githubAuthFailed: false },
     })
 
     // 4) 建立会话

@@ -8,6 +8,7 @@ import {
   IconGear, IconSearch, IconBriefcase, IconHome, Logo, IconBell,
 } from './icons'
 import { useStore } from './StoreProvider'
+import { useToast, apiError } from './Toast'
 import CommandPalette, { useCommandPalette } from './CommandPalette'
 import type { Scope } from '@/lib/types'
 import { SPRING, springLoop, prefersReducedMotion, type SpringLoop } from '@/lib/motion'
@@ -228,7 +229,8 @@ function Sidebar({ zone }: { zone: Scope }) {
 
 function TopBar({ zone, onOpenCmd }: { zone: Scope; onOpenCmd: () => void }) {
   const path = usePathname()
-  const { s, api } = useStore()
+  const { s, api, refresh } = useStore()
+  const toast = useToast()
   const [syncing, setSyncing] = useState(false)
   const [now, setNow] = useState<number | null>(null)
 
@@ -244,15 +246,33 @@ function TopBar({ zone, onOpenCmd }: { zone: Scope; onOpenCmd: () => void }) {
   }, [])
 
   const syncAgo = s && now !== null ? Math.max(1, Math.round((now - s.lastSync) / 60e3)) : 1
+  // 同步水位只在完整成功时推进，所以时间跨度可能较大 → 按分钟/小时/天分级显示
+  const syncAgoLabel = s && now !== null
+    ? (syncAgo < 60 ? `${syncAgo} 分钟前`
+      : syncAgo < 60 * 24 ? `${Math.round(syncAgo / 60)} 小时前`
+        : `${Math.round(syncAgo / (60 * 24))} 天前`)
+    : '…'
   const synced = s && s.lastSync > 0
+  // 授权失效标记读后端持久化结果：跨会话可见，而非只在「本次会话同步过」时才显示
+  const authFailed = Boolean(s?.settings.githubAuthFailed)
 
   const doSync = async () => {
     if (syncing) return
     setSyncing(true)
     try {
-      await api('/api/sync', { method: 'POST' })
+      const res = await api('/api/sync', { method: 'POST' })
+      if (!res.ok) {
+        toast(await apiError(res), 'error')
+        return
+      }
+      const j = (await res.json()) as { fetched: number; errors: string[]; authFailed?: boolean }
+      // 授权失效标记与同步水位都由后端持久化 → 刷新 store，让顶栏立刻反映真实状态
+      void refresh()
+      if (j.authFailed) toast(j.errors[0] ?? 'GitHub 授权已失效，请重新登录授权', 'error')
+      else if (j.errors.length) toast(`同步未完整完成：${j.errors.join('；')}`, 'error')
+      else toast(j.fetched > 0 ? `已同步 ${j.fetched} 条新动态` : '已是最新，没有新的动态', 'success')
     } catch {
-      /* handled elsewhere */
+      toast('同步请求失败，请稍后重试', 'error')
     } finally {
       setSyncing(false)
     }
@@ -284,24 +304,26 @@ function TopBar({ zone, onOpenCmd }: { zone: Scope; onOpenCmd: () => void }) {
       </div>
 
       <div className="ml-auto flex items-center gap-2.5">
-        {/* GitHub 同步：仅工作区展示 */}
-        {zone === 'work' && (
-          <button
-            onClick={doSync}
-            disabled={syncing}
-            title="点击立即同步 GitHub 活动"
-            className={`btn-press flex items-center gap-2 h-8 px-3 rounded-full border cursor-pointer transition-all duration-300 ${synced
+        {/* GitHub 同步：两个分区都可用（生活区的「开源热爱」同样依赖它） */}
+        <button
+          onClick={doSync}
+          disabled={syncing}
+          title={authFailed
+            ? 'GitHub 授权已失效：请重新登录授权，或到「设置」粘贴新的 Token'
+            : '点击立即同步 GitHub 活动'}
+          className={`btn-press flex items-center gap-2 h-8 px-3 rounded-full border cursor-pointer transition-all duration-300 ${authFailed
+            ? 'bg-red/10 border-red/40 hover:border-red/60'
+            : synced
               ? 'bg-accent/8 border-accent/25 hover:border-accent/45'
               : 'bg-card border-line hover:border-line2'} disabled:cursor-wait`}>
-            <svg viewBox="0 0 16 16" width={13.5} height={13.5} fill="currentColor" className={syncing ? 'animate-spin text-dim' : 'text-dim'}>
-              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
-            </svg>
-            <span className={`hidden sm:inline text-[11.5px] ${synced ? 'text-accent' : 'text-faint'}`}>
-              {syncing ? '同步中…' : synced ? `${syncAgo} 分钟前` : '未同步'}
-            </span>
-            {synced && !syncing && <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-accent pulse-dot" />}
-          </button>
-        )}
+          <svg viewBox="0 0 16 16" width={13.5} height={13.5} fill="currentColor" className={syncing ? 'animate-spin text-dim' : authFailed ? 'text-red' : 'text-dim'}>
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+          </svg>
+          <span className={`hidden sm:inline text-[11.5px] ${authFailed ? 'text-red font-medium' : synced ? 'text-accent' : 'text-faint'}`}>
+            {syncing ? '同步中…' : authFailed ? '授权失效' : synced ? syncAgoLabel : '未同步'}
+          </span>
+          {synced && !syncing && !authFailed && <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-accent pulse-dot" />}
+        </button>
 
         {/* 移动端/折叠时的搜索按钮 */}
         <button

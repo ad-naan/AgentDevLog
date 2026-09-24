@@ -1,12 +1,94 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useStore } from '../StoreProvider'
 import { useToast, apiError } from '../Toast'
-import type { Scope } from '@/lib/types'
+import type { AppState, Scope } from '@/lib/types'
 import { IconGear, IconSpark, IconClose } from '../icons'
 import PageSkeleton from '../PageSkeleton'
+
+/** 距今还有多久（用于展示令牌剩余有效期） */
+function untilLabel(ts: number) {
+  const ms = ts - Date.now()
+  if (ms <= 0) return '已过期'
+  const minutes = Math.round(ms / 60e3)
+  if (minutes < 60) return `${Math.max(1, minutes)} 分钟`
+  const hours = Math.round(minutes / 60)
+  if (hours < 48) return `${hours} 小时`
+  return `${Math.round(hours / 24)} 天`
+}
+
+interface GithubAuthStatus {
+  /** 状态圆点样式（绿=续期就绪 / 灰=长期令牌 / 红=需重新授权） */
+  dot: string
+  title: string
+  detail: string
+  /** 需要用户重新授权时的按钮文案；null = 无需操作 */
+  action: string | null
+}
+
+/**
+ * 由授权字段推导状态面板文案。
+ * 长期令牌（PAT / OAuth App）永不过期；过期型令牌（GitHub App）靠 refresh token 自动换新。
+ * 与 untilLabel 一样在每次渲染时读取当前时间，因此倒计时会随时间自然刷新。
+ */
+function githubAuthStatus(settings: AppState['settings']): GithubAuthStatus {
+  const { githubToken, githubAutoRenew, githubTokenExpiresAt, githubAuthFailed } = settings
+
+  // 最近一次同步被 GitHub 拒绝：优先于令牌类型展示，避免「同步拉不到数据」却看不出原因
+  if (githubAuthFailed)
+    return {
+      dot: 'bg-red shadow-[0_0_0_3px_color-mix(in_srgb,var(--color-red)_18%,transparent)]',
+      title: '授权已失效',
+      detail: githubAutoRenew
+        ? 'GitHub 已拒绝当前令牌（被撤销或权限不足）。请重新授权，即可恢复同步并重新开启自动续期。'
+        : 'GitHub 已拒绝当前令牌（已被撤销或失效），因此同步拉不到任何数据。请重新授权以恢复同步。',
+      action: '重新授权',
+    }
+
+  // 未配置：匿名也能同步公共仓库，只是限流低
+  if (!githubToken)
+    return {
+      dot: 'bg-dim',
+      title: '未连接 GitHub 凭据',
+      detail:
+        '仅公共仓库可匿名同步且限流较低。私有仓库或高频同步请粘贴 PAT，或用 GitHub 账号授权以开启自动续期。',
+      action: '去授权',
+    }
+
+  // 续期能力就绪：展示令牌到期倒计时
+  if (githubAutoRenew)
+    return {
+      dot: 'bg-accent shadow-[0_0_0_3px_color-mix(in_srgb,var(--color-accent)_18%,transparent)]',
+      title: '自动续期已开启',
+      detail:
+        githubTokenExpiresAt !== null
+          ? `当前访问令牌 ${untilLabel(githubTokenExpiresAt)}后到期，同步前会自动用刷新令牌换新，无需手动干预。`
+          : '已持有刷新令牌，访问令牌到期时会自动换新。',
+      action: null,
+    }
+
+  // 长期令牌（PAT / OAuth App）：本就不需要续期，但仍给出重新授权入口以便随时换新凭据
+  if (githubTokenExpiresAt === null)
+    return {
+      dot: 'bg-dim',
+      title: '长期令牌',
+      detail: '当前使用 PAT / OAuth App 长期令牌，不会过期，因此无需自动续期；若同步失败可在此重新授权。',
+      action: '重新授权',
+    }
+
+  // 过期型令牌但已无可用 refresh token：只能重新授权
+  return {
+    dot: 'bg-red',
+    title: githubTokenExpiresAt <= Date.now() ? '授权已失效' : '自动续期已失效',
+    detail: '刷新令牌已过期或缺失，无法再自动换新。请重新用 GitHub 账号授权以恢复自动续期。',
+    action: '重新授权',
+  }
+}
+
+
 
 export default function Settings() {
   const { s, refresh, api } = useStore()
@@ -40,6 +122,12 @@ export default function Settings() {
 
   const normalizeRepo = (v: string) =>
     v.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '')
+
+  // 授权状态面板：自动续期是否开启 + 令牌剩余有效期（推导逻辑见文件末尾 githubAuthStatus）
+  const ghAutoRenew = s.settings.githubAutoRenew
+  const ghAuth = githubAuthStatus(s.settings)
+
+
 
   const addRepo = async (scope: Scope) => {
     const raw = scope === 'work' ? repoInput : repoInputLife
@@ -349,6 +437,30 @@ export default function Settings() {
         <p className="text-[12px] text-dim mb-4">
           从真实 GitHub API 拉取 Push / PR / Issue 事件并写入 PostgreSQL。公共仓库可不填 token，私有仓库需填写 PAT。
         </p>
+
+        {/* 授权状态：一眼看清「会不会自动续期」与令牌剩余有效期 */}
+        <div className="mb-4 flex items-start gap-3 rounded-xl border border-line bg-inset/60 px-3.5 py-3">
+          <span className={`mt-[5px] h-2 w-2 shrink-0 rounded-full ${ghAuth.dot}`} />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span className="text-[12.5px] font-semibold text-txt">{ghAuth.title}</span>
+              {ghAutoRenew && (
+                <span className="rounded-md bg-accent/10 px-1.5 py-0.5 text-[10.5px] font-medium text-accent">
+                  Auto-renew
+                </span>
+              )}
+            </div>
+            <p className="mt-0.5 text-[11.5px] leading-relaxed text-dim">{ghAuth.detail}</p>
+          </div>
+          {ghAuth.action && (
+            <Link
+              href="/api/auth/github"
+              className="btn-press shrink-0 self-center rounded-lg border border-accent/40 px-2.5 py-1.5 text-[11.5px] font-medium text-accent transition-colors hover:bg-accent/10">
+              {ghAuth.action}
+            </Link>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <label className="block">
             <span className="text-[12px] text-dim font-medium">GitHub 用户名（只同步我的活动）</span>

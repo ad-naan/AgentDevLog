@@ -47,6 +47,13 @@ export async function loadState(): Promise<AppState> {
       watchedReposLife: settings.watchedReposLife,
       githubToken: settings.githubToken,
       githubUser: settings.githubUser,
+      githubTokenExpiresAt: settings.githubTokenExpiresAt?.getTime() ?? null,
+      // 续期能力 = 持有 refresh token，且它自身尚未过期（GitHub 的 refresh token 有效期 6 个月）
+      githubAutoRenew:
+        Boolean(settings.githubRefreshToken) &&
+        (!settings.githubRefreshExpiresAt || settings.githubRefreshExpiresAt.getTime() > Date.now()),
+      githubAuthFailed: settings.githubAuthFailed,
+
       languages: settings.languages as [string, number, number][],
       llmBaseUrl: settings.llmBaseUrl,
       llmModel: settings.llmModel,

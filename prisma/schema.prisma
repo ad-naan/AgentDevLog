@@ -35,6 +35,15 @@ model Settings {
   watchedReposLife String[] @default([]) // 生活分区关注的仓库（个人项目等）
   githubToken   String  @default("")
   githubUser    String  @default("")
+  // OAuth 自动续期：GitHub App 的「过期型用户令牌」会一并返回 refresh token（ghr_，6 个月有效）。
+  // OAuth App 的长期令牌（gho_）不带 refresh token，这三项保持空值即表示「不参与自动续期」。
+  githubRefreshToken     String    @default("")
+  githubTokenExpiresAt   DateTime? // null = 长期令牌，不会自动过期
+  githubRefreshExpiresAt DateTime? // refresh token 到期时间，过期后必须重新授权
+  // 最近一次同步是否被 GitHub 拒绝（401）：跨会话记住，供设置页提示「重新授权」，避免同步静默失败。
+  // 同步成功、重新授权、手填 PAT 都会重置为 false。
+  githubAuthFailed       Boolean   @default(false)
+
   languages     Json    @default("[]")
   llmBaseUrl    String  @default("")
   llmModel      String  @default("")
