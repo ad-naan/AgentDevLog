@@ -105,9 +105,17 @@ function Sidebar({ zone }: { zone: Scope }) {
               href={n.href}
               className={`group relative flex items-center gap-3 px-3 py-2 rounded-[10px] text-[13px] w-full text-left transition-all duration-300
                 ${on
-                  ? 'bg-[rgba(52,199,89,.1)] text-txt font-medium shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_1px_3px_rgba(0,0,0,.25)]'
+                  ? zone === 'life'
+                    ? 'bg-accent/10 text-txt font-medium shadow-[0_1px_2px_rgba(96,80,56,.1)]'
+                    : 'bg-[rgba(52,199,89,.1)] text-txt font-medium shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_1px_3px_rgba(0,0,0,.25)]'
                   : 'text-dim hover:bg-white/[0.04] hover:text-txt'}`}>
-              {on && <span className="absolute left-0.5 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-accent rounded-full shadow-[0_0_8px_rgba(52,199,89,.5)]" />}
+              {on && (
+                <span
+                  className={`absolute left-0.5 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-accent rounded-full ${
+                    zone === 'life' ? '' : 'shadow-[0_0_8px_rgba(52,199,89,.5)]'
+                  }`}
+                />
+              )}
               <n.icon
                 width={16}
                 height={16}
@@ -122,7 +130,9 @@ function Sidebar({ zone }: { zone: Scope }) {
           href={`/${zone}/settings`}
           className={`group relative flex items-center gap-3 px-3 py-2 rounded-[10px] text-[13px] w-full text-left transition-all duration-300
             ${path === `/${zone}/settings`
-              ? 'bg-white/[0.08] text-txt font-medium shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_1px_3px_rgba(0,0,0,.25)]'
+              ? zone === 'life'
+                ? 'bg-accent/10 text-txt font-medium shadow-[0_1px_2px_rgba(96,80,56,.1)]'
+                : 'bg-white/[0.08] text-txt font-medium shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_1px_3px_rgba(0,0,0,.25)]'
               : 'text-dim hover:bg-white/[0.04] hover:text-txt'}`}>
           {path === `/${zone}/settings` && <span className="absolute left-1 w-1 h-3.5 bg-accent rounded-full" />}
           <IconGear
@@ -140,9 +150,9 @@ function Sidebar({ zone }: { zone: Scope }) {
           <div className="relative shrink-0">
             {s?.user.avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={s.user.avatar} alt="" className="w-8 h-8 rounded-full object-cover ring-1 ring-white/10" />
+              <img src={s.user.avatar} alt="" className={`w-8 h-8 rounded-full object-cover ring-1 ${zone === 'life' ? 'ring-line2' : 'ring-white/10'}`} />
             ) : s ? (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0a84ff] to-[#5e5ce6] flex items-center justify-center text-[11px] font-semibold text-white">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold text-white ${zone === 'life' ? 'bg-gradient-to-br from-[#b4573e] to-[#c98a3e]' : 'bg-gradient-to-br from-[#0a84ff] to-[#5e5ce6]'}`}>
                 {(s.user.name || 'U').trim()[0]?.toUpperCase()}
               </div>
             ) : (
@@ -216,12 +226,12 @@ function TopBar({ zone, onOpenCmd }: { zone: Scope; onOpenCmd: () => void }) {
     <div className="h-[54px] shrink-0 border-b border-line flex items-center px-3 sm:px-5 gap-3.5 bg-panel/70 backdrop-blur-2xl">
       {/* 页面标题 */}
       <div className="flex items-center gap-2.5">
-         <span className={`text-[15px] sm:text-[16px] font-semibold tracking-tight text-txt ${zone === 'life' ? 'italic' : ''}`}>
-           {TITLES[path] ?? 'devlog'}
-         </span>
-        <span className={`text-[10.5px] px-2 py-0.5 rounded-full font-medium ${zone === 'work'
-          ? 'text-blue bg-blue/10'
-          : 'text-orange bg-orange/10'}`}>
+          <span className="text-[15px] sm:text-[16px] font-semibold tracking-tight text-txt">
+            {TITLES[path] ?? 'devlog'}
+          </span>
+         <span className={`text-[10.5px] px-2 py-0.5 rounded-full font-medium ${zone === 'work'
+           ? 'text-blue bg-blue/10'
+           : 'text-accent bg-accent/10'}`}>
           {zone === 'work' ? '工作' : '生活'}
         </span>
       </div>
@@ -314,7 +324,16 @@ function MobileNav({ zone }: { zone: Scope }) {
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const zone = useZone()
+  const path = usePathname()
   const { open, setOpen } = useCommandPalette()
+
+  // 分区感知的浏览器标题
+  useEffect(() => {
+    const t = TITLES[path]
+    document.title = t && t !== '今天'
+      ? `DevLog · ${t}`
+      : zone === 'life' ? 'DevLog · 生活日志' : 'DevLog · 工作日志'
+  }, [zone, path])
 
   return (
     <div className={`h-screen flex flex-col ${zone === 'life' ? 'zone-life' : ''}`}>

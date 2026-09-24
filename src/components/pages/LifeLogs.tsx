@@ -33,6 +33,7 @@ export default function LifeLogs() {
   const [draft, setDraft] = useState('')
   const [creating, setCreating] = useState(false)
   const [newText, setNewText] = useState('')
+  const [confirmRip, setConfirmRip] = useState<number | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const entries = useMemo(
@@ -68,6 +69,17 @@ export default function LifeLogs() {
     setDraft(l.content)
   }
 
+  // 撕页：两步确认，3 秒未确认自动还原
+  const ripEntry = (l: LogDTO) => {
+    if (confirmRip !== l.id) {
+      setConfirmRip(l.id)
+      setTimeout(() => setConfirmRip((cur) => (cur === l.id ? null : cur)), 3000)
+      return
+    }
+    setConfirmRip(null)
+    removeEntry(l)
+  }
+
   const removeEntry = async (l: LogDTO) => {
     const res = await api(`/api/logs/${l.id}`, { method: 'DELETE' })
     if (res.ok) {
@@ -92,10 +104,12 @@ export default function LifeLogs() {
       toast(await apiError(res), 'error')
       return
     }
+    // 接口直接返回创建（或已存在）的日志，用它立即翻开新的一页
+    const created = await res.json() as Pick<LogDTO, 'id' | 'content'>
     setCreating(false)
     setNewText('')
-    const created = entries.find((l) => l.date === date)
-    if (created) openEntry(created)
+    setEditing(created.id)
+    setDraft(created.content)
   }
 
 
@@ -104,14 +118,14 @@ export default function LifeLogs() {
       <header className="flex items-end justify-between gap-3 pt-5 sm:pt-7">
         <div>
            <h1 className="text-[28px] sm:text-[32px] leading-tight text-txt tracking-[-0.02em]">日记本</h1>
-          <p className="text-[12.5px] text-faint mt-1 italic">
+          <p className="text-[12.5px] text-faint mt-1">
             {entries.length > 0 ? `已经写下 ${entries.length} 页` : '第一页，从今天开始'} · 不用写得好，写下就好
           </p>
         </div>
         {!creating && (
           <button
             onClick={() => setCreating(true)}
-             className="flex items-center gap-1.5 px-3.5 h-9 rounded-xl bg-accent text-[#fdf9f0] text-[12.5px] font-medium btn-press hover:bg-accent-hover transition-all shrink-0"
+             className="flex items-center gap-1.5 px-3.5 h-9 rounded-full bg-accent text-[#fdf9f0] text-[12.5px] font-medium btn-press hover:bg-accent-hover transition-all shrink-0"
           >
             <IconPlus width={13} height={13} />写今天的日记
           </button>
@@ -143,7 +157,7 @@ export default function LifeLogs() {
               翻开新的一页
             </button>
           </div>
-          <p className="text-[11px] text-faint mt-2.5 italic">提示：也可以在生活台首页用「此刻速记」快速记一笔。</p>
+          <p className="text-[11px] text-faint mt-2.5">提示：也可以在生活台首页用「此刻速记」快速记一笔。</p>
         </section>
       )}
 
@@ -152,7 +166,7 @@ export default function LifeLogs() {
         <div className="rounded-[22px] border border-dashed border-line2 bg-card/45 py-16 text-center">
           <p className="text-[28px] mb-3">📖</p>
           <p className="text-[13px] text-dim">本子还是空的</p>
-          <p className="text-[12px] text-faint mt-1 italic">每天一页，回头翻看会感谢现在的自己</p>
+          <p className="text-[12px] text-faint mt-1">每天一页，回头翻看会感谢现在的自己</p>
         </div>
       ) : (
         <div className="relative pl-6">
@@ -218,10 +232,14 @@ export default function LifeLogs() {
                           ))}
                           <div className="ml-auto flex items-center gap-2">
                             <button
-                              onClick={() => removeEntry(l)}
-                              className="text-[11.5px] text-faint hover:text-red transition-colors px-2 py-1"
+                              onClick={() => ripEntry(l)}
+                              className={`text-[11.5px] transition-colors px-2 py-1 rounded-full border ${
+                                confirmRip === l.id
+                                  ? 'text-red border-red/40 bg-red/10'
+                                  : 'text-faint hover:text-red border-transparent'
+                              }`}
                             >
-                              撕掉这页
+                              {confirmRip === l.id ? '确认撕掉？' : '撕掉这页'}
                             </button>
                             <button
                               onClick={() => setEditing(null)}
@@ -231,19 +249,19 @@ export default function LifeLogs() {
                             </button>
                           </div>
                         </div>
-                        <p className="text-[10.5px] text-faint mt-2 italic">内容会自动保存，随时合上</p>
+                        <p className="text-[10.5px] text-faint mt-2">内容会自动保存，随时合上</p>
                       </>
                     ) : (
                       <button onClick={() => openEntry(l)} className="w-full text-left group">
                         <p className="text-[13.5px] text-txt/90 leading-relaxed">
-                          {preview(l.title).slice(0, 80) || <span className="text-faint italic">这一页只有标题…</span>}
+                          {preview(l.title).slice(0, 80) || <span className="text-faint">这一页只有标题…</span>}
                         </p>
                         {l.content && (
                           <p className="text-[12.5px] text-dim mt-1.5 leading-relaxed line-clamp-2 opacity-80">
                             {preview(l.content).slice(0, 120)}
                           </p>
                         )}
-                        <p className="text-[11px] text-faint mt-2 group-hover:text-accent transition-colors italic">
+                        <p className="text-[11px] text-faint mt-2 group-hover:text-accent transition-colors">
                           翻开这一页 →
                         </p>
                       </button>

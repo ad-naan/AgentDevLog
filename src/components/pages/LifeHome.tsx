@@ -88,11 +88,11 @@ export default function LifeHome() {
   return (
     <div className="max-w-[880px] mx-auto px-4 sm:px-6 pb-12 flex flex-col gap-8">
       {/* 问候 */}
-      <header className="pt-4 sm:pt-6 flex items-end justify-between gap-4">
+      <header className="pt-4 sm:pt-6 flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
            <h1 className="text-[28px] sm:text-[32px] leading-tight text-txt">
           {greet()}，{s.user.name.split(' ')[0]}
         </h1>
-        <p className="text-[13px] text-faint mt-1 italic">{todayStr} · 不赶时间，慢慢记</p>
+        <p className="text-[13px] text-faint mt-1 serif-num">{todayStr}</p>
       </header>
 
       {/* 今日速记 */}
@@ -119,10 +119,11 @@ export default function LifeHome() {
             <button
               key={m}
               onClick={() => setMood(mood === m ? '' : m)}
-              className={`w-9 h-9 rounded-full text-[15px] flex items-center justify-center border transition-all btn-press ${
-                mood === m ? 'border-accent/50 bg-accent/10 scale-110' : 'border-line hover:border-line2'
-              }`}
+              aria-pressed={mood === m}
               aria-label={`心情 ${m}`}
+              className={`w-9 h-9 rounded-full text-[15px] flex items-center justify-center border transition-all btn-press ${
+                mood === m ? 'border-accent/50 bg-accent/10 scale-110' : 'border-line hover:border-line2 hover:bg-card-subtle'
+              }`}
             >
               {m}
             </button>
@@ -148,20 +149,20 @@ export default function LifeHome() {
             </Link>
           </div>
           {diaries.length === 0 ? (
-            <p className="text-[12.5px] text-faint py-8 text-center italic">还没有日记，从上面写下第一条吧</p>
+            <p className="text-[12.5px] text-faint py-8 text-center">还没有日记，从上面写下第一条吧</p>
           ) : (
             <ul className="flex flex-col gap-3.5">
               {diaries.slice(0, 5).map((d) => (
                 <li key={d.id} className="group">
-                  <Link href="/life/logs" className="block">
+                  <Link href="/life/logs" className="block rounded-lg -mx-2 px-2 py-1 transition-colors hover:bg-card-subtle/70">
                     <div className="flex items-baseline gap-2.5">
-                      <span className="font-mono text-[10.5px] text-faint shrink-0">{d.date.slice(5)}</span>
+                      <span className="serif-num text-[11px] text-faint shrink-0">{d.date.slice(5).replace('-', ' / ')}</span>
                       <span className="text-[13px] text-txt/90 group-hover:text-accent transition-colors leading-relaxed">
                         {d.title}
                       </span>
                     </div>
                     {d.content && (
-                      <p className="text-[12px] text-dim mt-1 pl-[52px] line-clamp-1 italic opacity-75">
+                      <p className="text-[12px] text-dim mt-1 pl-[52px] line-clamp-1 opacity-75">
                         {d.content.replace(/[#>*`\-\n]/g, ' ').slice(0, 60)}
                       </p>
                     )}
@@ -183,13 +184,15 @@ export default function LifeHome() {
             </Link>
           </div>
           {wishes.length === 0 ? (
-            <p className="text-[12.5px] text-faint py-6 text-center italic">暂时没有待办的心愿，享受当下</p>
+            <p className="text-[12.5px] text-faint py-6 text-center">暂时没有待办的心愿，享受当下</p>
           ) : (
-            <ul className="flex flex-col gap-2.5">
+            <ul className="flex flex-col gap-1">
               {wishes.map((t) => (
-                <li key={t.id} className="flex items-center gap-2.5 text-[12.5px] text-dim">
-                  <span className="w-1.5 h-1.5 rounded-full bg-accent/70 shrink-0" />
-                  <span className="truncate">{t.title}</span>
+                <li key={t.id}>
+                  <Link href="/life/todos" className="flex items-center gap-2.5 text-[12.5px] text-dim rounded-lg -mx-2 px-2 py-1.5 transition-colors hover:bg-card-subtle/70 hover:text-txt">
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent/70 shrink-0" />
+                    <span className="truncate">{t.title}</span>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -203,7 +206,7 @@ export default function LifeHome() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-[14px] font-semibold text-txt flex items-center gap-2">
               🌱 开源热爱
-              <span className="text-[11px] font-normal text-faint italic">写代码也是一种热爱</span>
+              <span className="text-[11px] font-normal text-faint">写代码也是一种热爱</span>
             </h2>
             <Link href="/life/settings" className="text-[12px] text-faint hover:text-dim transition-colors">
               管理仓库 →
@@ -213,15 +216,15 @@ export default function LifeHome() {
           {/* 热爱数据 */}
           <div className="grid grid-cols-3 gap-3 mb-4">
             <div className="rounded-xl bg-inset border border-line px-3.5 py-2.5 text-center">
-              <b className="block text-[18px] text-accent leading-tight">{oss.stats.commits}</b>
+              <b className="block text-[19px] text-accent leading-tight serif-num">{oss.stats.commits}</b>
               <span className="text-[11px] text-faint">今日提交</span>
             </div>
             <div className="rounded-xl bg-inset border border-line px-3.5 py-2.5 text-center">
-              <b className="block text-[18px] text-accent leading-tight">{oss.stats.streak}</b>
+              <b className="block text-[19px] text-accent leading-tight serif-num">{oss.stats.streak}</b>
               <span className="text-[11px] text-faint">连续热爱天数</span>
             </div>
             <div className="rounded-xl bg-inset border border-line px-3.5 py-2.5 text-center">
-              <b className="block text-[18px] text-accent leading-tight">{oss.perRepo.reduce((n, r) => n + r[1], 0)}</b>
+              <b className="block text-[19px] text-accent leading-tight serif-num">{oss.perRepo.reduce((n, r) => n + r[1], 0)}</b>
               <span className="text-[11px] text-faint">30 天 commits</span>
             </div>
           </div>
@@ -253,7 +256,7 @@ export default function LifeHome() {
             <div>
               <p className="text-[11.5px] text-faint mb-2.5">最近的热爱足迹</p>
               {oss.acts.length === 0 ? (
-                <p className="text-[12.5px] text-faint py-4 text-center italic">还没有同步到活动，点右上角同步试试</p>
+                <p className="text-[12.5px] text-faint py-4 text-center">还没有同步到活动，点右上角同步试试</p>
               ) : (
                 <ul className="flex flex-col gap-2.5">
                   {oss.acts.slice(0, 5).map((a) => (
@@ -282,7 +285,7 @@ export default function LifeHome() {
             <div>
               <p className="text-[11.5px] text-faint mb-2.5">近 30 天项目热度</p>
               {oss.perRepo.length === 0 ? (
-                <p className="text-[12.5px] text-faint py-4 text-center italic">这个月还没提交，灵感在酝酿中</p>
+                <p className="text-[12.5px] text-faint py-4 text-center">这个月还没提交，灵感在酝酿中</p>
               ) : (
                 <ul className="flex flex-col gap-2">
                   {oss.perRepo.map(([repo, n]) => {

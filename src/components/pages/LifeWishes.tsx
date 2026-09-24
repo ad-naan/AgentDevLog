@@ -35,6 +35,7 @@ export default function LifeWishes() {
   const [level, setLevel] = useState<'P0' | 'P1' | 'P2'>('P1')
   const [busy, setBusy] = useState(false)
   const [showDone, setShowDone] = useState(false)
+  const [letGoId, setLetGoId] = useState<number | null>(null)
 
   const wishes = useMemo(
     () => (s ? s.todos.filter((t) => t.scope === 'life' && !t.done).sort((a, b) => b.createdAt - a.createdAt) : []),
@@ -75,24 +76,33 @@ export default function LifeWishes() {
     }
   }
 
-  const grant = (t: TodoDTO) => {
-    patch(t, { done: true })
-    toast(`「${t.title.slice(0, 16)}」实现啦 🎉`, 'success')
+  const grant = async (t: TodoDTO) => {
+    const res = await patch(t, { done: true })
+    if (res.ok) toast(`「${t.title.slice(0, 16)}」实现啦 🎉`, 'success')
+    else toast(await apiError(res), 'error')
   }
 
+  // 放手：两步确认，3 秒未确认自动还原
   const letGo = async (t: TodoDTO) => {
+    if (letGoId !== t.id) {
+      setLetGoId(t.id)
+      setTimeout(() => setLetGoId((cur) => (cur === t.id ? null : cur)), 3000)
+      return
+    }
+    setLetGoId(null)
     const res = await api(`/api/todos/${t.id}`, { method: 'DELETE' })
     if (res.ok) toast('放手也是一种整理')
+    else toast(await apiError(res), 'error')
   }
 
   const total = wishes.length + granted.length
   const rate = total > 0 ? Math.round((granted.length / total) * 100) : 0
 
   return (
-    <div className="max-w-[880px] mx-auto pb-10 flex flex-col gap-6">
+    <div className="max-w-[880px] mx-auto px-4 sm:px-6 pb-12 flex flex-col gap-6 sm:gap-7">
       <header className="pt-2">
-        <h1 className="text-[24px] text-txt leading-snug">小心愿</h1>
-        <p className="text-[12.5px] text-faint mt-1 italic">
+        <h1 className="text-[28px] text-txt leading-snug">小心愿</h1>
+        <p className="text-[12.5px] text-faint mt-1 serif-num">
           {total > 0
             ? `贴了 ${total} 个心愿，实现了 ${granted.length} 个（${rate}%）`
             : '心里想了很久的事，先贴上墙再说'}
@@ -109,13 +119,15 @@ export default function LifeWishes() {
             placeholder="想去的地方、想学的东西、想见的人…"
             className="flex-1 bg-inset border border-line rounded-xl px-3.5 h-10 text-[13.5px] text-txt placeholder:text-faint outline-none focus:border-accent/40 transition-colors"
           />
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0" role="radiogroup" aria-label="念想强度">
             {LEVELS.map((lv) => (
               <button
                 key={lv.key}
                 onClick={() => setLevel(lv.key as 'P0' | 'P1' | 'P2')}
+                role="radio"
+                aria-checked={level === lv.key}
                 className={`px-2.5 h-8 rounded-full text-[11.5px] border transition-all btn-press ${
-                  level === lv.key ? 'border-accent/50 text-accent bg-accent/10' : 'border-line text-faint hover:text-dim'
+                  level === lv.key ? 'border-accent/50 text-accent bg-accent/10' : 'border-line text-faint hover:text-dim hover:border-line2'
                 }`}
               >
                 {lv.label}
@@ -137,7 +149,7 @@ export default function LifeWishes() {
         <div className="rounded-2xl border border-dashed border-line2 bg-card/50 py-16 text-center">
           <p className="text-[28px] mb-3">🌠</p>
           <p className="text-[13px] text-dim">墙上还空着</p>
-          <p className="text-[12px] text-faint mt-1 italic">不用是宏大的愿望，小到「周末去公园野餐」也很好</p>
+          <p className="text-[12px] text-faint mt-1">不用是宏大的愿望，小到「周末去公园野餐」也很好</p>
         </div>
       ) : (
         <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 [&>*]:mb-4">
@@ -152,10 +164,15 @@ export default function LifeWishes() {
                   <span className="text-[15px] leading-none">{pinOf(t.id)}</span>
                   <button
                     onClick={() => letGo(t)}
-                    title="放手"
-                    className="text-faint shrink-0 transition-colors hover:text-red"
+                    title={letGoId === t.id ? '再点一次确认放手' : '放手'}
+                    aria-label={letGoId === t.id ? '确认放手' : '放手'}
+                    className={`shrink-0 transition-colors rounded-full -mt-1.5 -mr-1.5 w-7 h-7 flex items-center justify-center btn-press ${
+                      letGoId === t.id
+                        ? 'text-red bg-red/10 ring-1 ring-red/30'
+                        : 'text-faint/70 hover:text-red hover:bg-red/10'
+                    }`}
                   >
-                    <IconClose width={12} height={12} />
+                    <IconClose width={13} height={13} />
                   </button>
                 </div>
                 <p className="text-[13.5px] text-txt leading-relaxed whitespace-pre-wrap">{t.title}</p>
@@ -166,7 +183,7 @@ export default function LifeWishes() {
                   </span>
                   <button
                     onClick={() => grant(t)}
-                    className="text-[11.5px] text-accent hover:underline underline-offset-2 transition-all"
+                    className="text-[11.5px] text-accent hover:underline underline-offset-2 transition-all rounded px-1.5 -mr-1.5 py-0.5"
                   >
                     实现啦
                   </button>
@@ -194,7 +211,7 @@ export default function LifeWishes() {
               {granted.map((t) => (
                 <li key={t.id} className="flex items-center gap-2.5 text-[12.5px]">
                   <span className="text-dim/60 line-through decoration-faint">{t.title}</span>
-                  <span className="ml-auto text-[10.5px] text-faint shrink-0 italic">{since(t.updatedAt)}实现</span>
+                  <span className="ml-auto text-[10.5px] text-faint shrink-0">{since(t.updatedAt)}实现</span>
                   <button onClick={() => patch(t, { done: false })} className="text-[10.5px] text-faint hover:text-accent transition-colors shrink-0">
                     再许一次
                   </button>

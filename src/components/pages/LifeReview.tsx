@@ -59,7 +59,7 @@ export default function LifeReview() {
     <div className="max-w-[880px] mx-auto px-4 sm:px-6 pb-12 flex flex-col gap-7 sm:gap-9">
       <header className="pt-5 sm:pt-7">
         <h1 className="text-[28px] sm:text-[32px] leading-tight text-txt tracking-[-0.02em]">回忆册</h1>
-        <p className="text-[12.5px] text-faint mt-1 italic">记下的日子都算数 · 翻一翻，看见自己</p>
+        <p className="text-[12.5px] text-faint mt-1">记下的日子都算数 · 翻一翻，看见自己</p>
       </header>
 
       {/* 数字一览：三张小卡 */}
@@ -83,7 +83,7 @@ export default function LifeReview() {
       </div>
 
       {/* 记录热力：纸上的红点 */}
-      <section className="rounded-[22px] border border-line bg-card/75 p-4 sm:p-6 shadow-[0_5px_18px_rgba(96,80,56,.05)]">
+      <section className="rounded-[22px] border border-line bg-card p-4 sm:p-6 shadow-[0_5px_18px_rgba(96,80,56,.05)]">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-[13.5px] font-semibold text-txt">留下痕迹的日子</h2>
           <div className="flex items-center gap-1.5 text-[10px] text-faint">
@@ -111,10 +111,10 @@ export default function LifeReview() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* 心情分布 */}
-        <section className="rounded-[22px] border border-line bg-card/75 p-4 sm:p-6 shadow-[0_5px_18px_rgba(96,80,56,.05)]">
+        <section className="rounded-[22px] border border-line bg-card p-4 sm:p-6 shadow-[0_5px_18px_rgba(96,80,56,.05)]">
           <h2 className="text-[13.5px] font-semibold text-txt mb-4">心情的形状</h2>
           {moodDist.total === 0 ? (
-            <p className="text-[12.5px] text-faint py-6 text-center italic">在日记里盖个心情章，这里就有形状了</p>
+            <p className="text-[12.5px] text-faint py-6 text-center">在日记里盖个心情章，这里就有形状了</p>
           ) : (
             <div className="flex flex-col gap-3">
               {[5, 4, 3, 2, 1].map((m) => {
@@ -138,7 +138,7 @@ export default function LifeReview() {
         </section>
 
         {/* 随机一页旧日记 */}
-        <section className="rounded-[22px] border border-line bg-card/75 p-4 sm:p-6 shadow-[0_5px_18px_rgba(96,80,56,.05)] flex flex-col">
+        <section className="rounded-[22px] border border-line bg-card p-4 sm:p-6 shadow-[0_5px_18px_rgba(96,80,56,.05)] flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-[13.5px] font-semibold text-txt">随手翻一页</h2>
             <button
@@ -150,25 +150,25 @@ export default function LifeReview() {
           </div>
           {memory ? (
             <Link href="/life/logs" className="group flex-1 flex flex-col">
-              <span className="text-[11px] text-faint mb-2">
+              <span className="text-[11px] text-faint mb-2 serif-num">
                 {memory.date.replace(/-/g, '.')} · {MOOD_FACE[memory.mood] ?? '✍️'}
               </span>
               <p className="text-[13px] text-txt/90 leading-relaxed group-hover:text-accent transition-colors line-clamp-6">
                 {preview(memory.content || memory.title).slice(0, 180) || '……'}
               </p>
-              <span className="text-[11px] text-faint mt-auto pt-3 italic group-hover:text-accent transition-colors">
+              <span className="text-[11px] text-faint mt-auto pt-3 group-hover:text-accent transition-colors">
                 去日记本看全文 →
               </span>
             </Link>
           ) : (
-            <p className="text-[12.5px] text-faint py-6 text-center italic">多写几页日记，这里就能翻到过去</p>
+            <p className="text-[12.5px] text-faint py-6 text-center">多写几页日记，这里就能翻到过去</p>
           )}
         </section>
       </div>
 
       {/* 已实现的心愿摘录 */}
       {granted > 0 && (
-        <section className="rounded-[22px] border border-line bg-card/75 p-4 sm:p-6 shadow-[0_5px_18px_rgba(96,80,56,.05)]">
+        <section className="rounded-[22px] border border-line bg-card p-4 sm:p-6 shadow-[0_5px_18px_rgba(96,80,56,.05)]">
           <h2 className="text-[13.5px] font-semibold text-txt mb-3.5 flex items-center gap-2">
             <IconFlame width={14} height={14} className="text-accent" />
             实现过的 {granted} 个心愿

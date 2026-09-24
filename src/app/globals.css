@@ -119,6 +119,56 @@ html, body {
   }
 }
 
+/* 纸面数字：衬线等宽数字（日记日期、统计数字对齐用） */
+.serif-num {
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* 生活区滚动条：暖墨色，替换全局白色滚动条 */
+.zone-life ::-webkit-scrollbar-thumb {
+  background: rgba(72, 60, 44, 0.18);
+}
+.zone-life ::-webkit-scrollbar-thumb:hover {
+  background: rgba(72, 60, 44, 0.32);
+}
+
+/* 生活区文本选区：赭红浅罩 */
+.zone-life ::selection {
+  background: rgba(180, 87, 62, 0.22);
+}
+
+/* 生活区骨架屏：白色流光在纸面不可见 → 暖墨流光 */
+.zone-life .skeleton {
+  background: linear-gradient(90deg, rgba(72,60,44,0.05) 25%, rgba(72,60,44,0.11) 50%, rgba(72,60,44,0.05) 75%);
+  background-size: 200% 100%;
+}
+
+/* 生活区自动填充：Chrome 默认蓝底白字会糊在纸面上 */
+.zone-life input:-webkit-autofill,
+.zone-life textarea:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--color-card) inset;
+  -webkit-text-fill-color: var(--color-txt);
+  caret-color: var(--color-txt);
+  transition: background-color 9999s ease-out;
+}
+
+/* 键盘可达性：统一 focus-visible 描边（工作区绿 / 生活区赭红，随 token 走） */
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+
+/* 无障碍：尊重减少动态偏好 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 
 /* ─── 极致沉浸滚动条 ─── */
 ::-webkit-scrollbar {
