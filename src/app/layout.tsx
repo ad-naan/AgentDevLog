@@ -22,8 +22,9 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
+  // 兜底标题：各路由通过 generateMetadata 提供分区感知的精确标题
   title: 'DevLog · 工作日志',
-  description: '开发者工作日志 · TodoList · GitHub 同步',
+  description: '开发者工作日志 · 生活记录 · TodoList · GitHub 同步',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

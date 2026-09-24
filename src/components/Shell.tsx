@@ -324,16 +324,7 @@ function MobileNav({ zone }: { zone: Scope }) {
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const zone = useZone()
-  const path = usePathname()
   const { open, setOpen } = useCommandPalette()
-
-  // 分区感知的浏览器标题
-  useEffect(() => {
-    const t = TITLES[path]
-    document.title = t && t !== '今天'
-      ? `DevLog · ${t}`
-      : zone === 'life' ? 'DevLog · 生活日志' : 'DevLog · 工作日志'
-  }, [zone, path])
 
   return (
     <div className={`h-screen flex flex-col ${zone === 'life' ? 'zone-life' : ''}`}>
